@@ -1,0 +1,6 @@
+{
+  "name": "thiwpdf",
+  "description": "โปรแกรมสำหรับแปลงไฟล์รูปภาพ JPEG/JPG เป็นไฟล์ PDF ได้ทันทีโดยไม่จำกัดจำนวนไฟล์ พร้อมทั้งปรับแต่งขนาด จัดเรียงลำดับ และดาวน์โหลดได้โดยตรง",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
