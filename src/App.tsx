@@ -11,6 +11,9 @@ import RotatePdf from './pages/RotatePdf';
 import WatermarkPdf from './pages/WatermarkPdf';
 import UnlockPdf from './pages/UnlockPdf';
 import AnalyzeImage from './pages/AnalyzeImage';
+import OrganizePdf from './pages/OrganizePdf';
+import PageNumbersPdf from './pages/PageNumbersPdf';
+import SignPdf from './pages/SignPdf';
 
 export default function App() {
   return (
@@ -27,6 +30,9 @@ export default function App() {
           <Route path="watermark" element={<WatermarkPdf />} />
           <Route path="unlock" element={<UnlockPdf />} />
           <Route path="analyze" element={<AnalyzeImage />} />
+          <Route path="organize" element={<OrganizePdf />} />
+          <Route path="page-numbers" element={<PageNumbersPdf />} />
+          <Route path="sign" element={<SignPdf />} />
         </Route>
       </Routes>
     </BrowserRouter>

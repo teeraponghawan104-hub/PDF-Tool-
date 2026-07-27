@@ -2,13 +2,17 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FileStack, Scissors, Image as ImageIcon, FileText, 
-  Settings, Key, Unlock, Stamp, RotateCcw, ScanSearch
+  Settings, Key, Unlock, Stamp, RotateCcw, ScanSearch, LayoutGrid,
+  Hash, PenTool
 } from 'lucide-react';
 
 const tools = [
   { id: 'merge', name: 'รวม PDF', desc: 'รวม PDF เข้าด้วยกันในรูปแบบที่คุณต้องการอย่างแม่นยำ', icon: <FileStack className="w-8 h-8 text-white" />, color: 'bg-red-500', path: '/merge' },
   { id: 'split', name: 'แยก PDF', desc: 'แยกหน้า PDF หนึ่งหน้าหรือหลายๆ หน้าให้กลายเป็นเอกสารเดียว', icon: <Scissors className="w-8 h-8 text-white" />, color: 'bg-orange-500', path: '/split' },
+  { id: 'organize', name: 'จัดเรียง PDF', desc: 'จัดเรียงลำดับหน้าใหม่ หรือลบหน้าที่คุณไม่ต้องการออก', icon: <LayoutGrid className="w-8 h-8 text-white" />, color: 'bg-teal-500', path: '/organize' },
   { id: 'compress', name: 'บีบอัด PDF', desc: 'ลดขนาดไฟล์ PDF ให้เล็กลงแต่ยังคงคุณภาพไว้ดีที่สุด', icon: <FileText className="w-8 h-8 text-white" />, color: 'bg-green-500', path: '/compress' },
+  { id: 'sign', name: 'เซ็นเอกสาร', desc: 'เพิ่มลายเซ็นของคุณลงในไฟล์ PDF วาดหรืออัปโหลดลายเซ็นได้ง่ายๆ', icon: <PenTool className="w-8 h-8 text-white" />, color: 'bg-rose-500', path: '/sign' },
+  { id: 'page-numbers', name: 'ใส่เลขหน้า', desc: 'เพิ่มหมายเลขหน้าลงในเอกสาร PDF เลือกตำแหน่งได้ตามต้องการ', icon: <Hash className="w-8 h-8 text-white" />, color: 'bg-cyan-500', path: '/page-numbers' },
   { id: 'analyze', name: 'วิเคราะห์รูปภาพ', desc: 'อัปโหลดรูปภาพและให้ AI ช่วยวิเคราะห์รายละเอียดภายในภาพ', icon: <ScanSearch className="w-8 h-8 text-white" />, color: 'bg-indigo-500', path: '/analyze' },
   { id: 'jpg-to-pdf', name: 'JPG เป็น PDF', desc: 'แปลงรูปภาพ JPG เป็น PDF หมุนหรือปรับระยะขอบแบบรวดเร็ว', icon: <ImageIcon className="w-8 h-8 text-white" />, color: 'bg-yellow-500', path: '/jpg-to-pdf' },
   { id: 'pdf-to-jpg', name: 'PDF เป็น JPG', desc: 'แปลงแต่ละหน้าเป็น JPG หรือแยกรูปภาพที่อยู่ใน PDF', icon: <ImageIcon className="w-8 h-8 text-white" />, color: 'bg-yellow-500', path: '/pdf-to-jpg' },
