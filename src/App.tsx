@@ -10,6 +10,7 @@ import PdfToJpg from './pages/PdfToJpg';
 import RotatePdf from './pages/RotatePdf';
 import WatermarkPdf from './pages/WatermarkPdf';
 import UnlockPdf from './pages/UnlockPdf';
+import EnhanceImage from './pages/EnhanceImage';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="rotate" element={<RotatePdf />} />
           <Route path="watermark" element={<WatermarkPdf />} />
           <Route path="unlock" element={<UnlockPdf />} />
+          <Route path="enhance" element={<EnhanceImage />} />
         </Route>
       </Routes>
     </BrowserRouter>

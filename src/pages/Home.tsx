@@ -2,13 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FileStack, Scissors, Image as ImageIcon, FileText, 
-  Settings, Key, Unlock, Stamp, RotateCcw
+  Settings, Key, Unlock, Stamp, RotateCcw, Sparkles
 } from 'lucide-react';
 
 const tools = [
   { id: 'merge', name: 'รวม PDF', desc: 'รวม PDF เข้าด้วยกันในรูปแบบที่คุณต้องการอย่างแม่นยำ', icon: <FileStack className="w-8 h-8 text-white" />, color: 'bg-red-500', path: '/merge' },
   { id: 'split', name: 'แยก PDF', desc: 'แยกหน้า PDF หนึ่งหน้าหรือหลายๆ หน้าให้กลายเป็นเอกสารเดียว', icon: <Scissors className="w-8 h-8 text-white" />, color: 'bg-orange-500', path: '/split' },
   { id: 'compress', name: 'บีบอัด PDF', desc: 'ลดขนาดไฟล์ PDF ให้เล็กลงแต่ยังคงคุณภาพไว้ดีที่สุด', icon: <FileText className="w-8 h-8 text-white" />, color: 'bg-green-500', path: '/compress' },
+  { id: 'enhance', name: 'ปรับความคมชัดภาพ', desc: 'เพิ่มความคมชัดของรูปภาพ ปรับคอนทราสต์ หรือแปลงขาวดำ', icon: <Sparkles className="w-8 h-8 text-white" />, color: 'bg-emerald-500', path: '/enhance' },
   { id: 'jpg-to-pdf', name: 'JPG เป็น PDF', desc: 'แปลงรูปภาพ JPG เป็น PDF หมุนหรือปรับระยะขอบแบบรวดเร็ว', icon: <ImageIcon className="w-8 h-8 text-white" />, color: 'bg-yellow-500', path: '/jpg-to-pdf' },
   { id: 'pdf-to-jpg', name: 'PDF เป็น JPG', desc: 'แปลงแต่ละหน้าเป็น JPG หรือแยกรูปภาพที่อยู่ใน PDF', icon: <ImageIcon className="w-8 h-8 text-white" />, color: 'bg-yellow-500', path: '/pdf-to-jpg' },
   { id: 'rotate', name: 'หมุน PDF', desc: 'หมุน PDF ตามที่คุณต้องการ รองรับหลายไฟล์พร้อมกัน', icon: <RotateCcw className="w-8 h-8 text-white" />, color: 'bg-purple-500', path: '/rotate' },
