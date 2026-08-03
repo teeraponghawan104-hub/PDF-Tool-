@@ -72,8 +72,8 @@ export default function CompressPdf() {
         const newPdfDoc = await PDFDocument.create();
         
         // Determine scale and quality based on settings
-        const scale = level === 'recommended' ? 2.0 : 1.3;
-        const jpegQuality = level === 'recommended' ? 0.75 : 0.5;
+        const scale = level === 'recommended' ? 3.0 : 2.0;
+        const jpegQuality = level === 'recommended' ? 0.85 : 0.65;
         
         for (let i = 1; i <= totalPages; i++) {
           const page = await originalPdf.getPage(i);
@@ -209,7 +209,7 @@ export default function CompressPdf() {
                               <div>
                                 <span className="block font-bold text-gray-900 text-lg">บีบอัดสูงสุด (Extreme)</span>
                                 <span className="text-sm text-gray-600 font-medium block mt-1">
-                                  คุณภาพน้อยลง ขนาดไฟล์เล็กที่สุด
+                                  ขนาดไฟล์เล็กที่สุด คุณภาพพอมองเห็นได้ (แปลงเป็นรูปภาพ)
                                 </span>
                               </div>
                             </div>
@@ -228,7 +228,7 @@ export default function CompressPdf() {
                               <div>
                                 <span className="block font-bold text-gray-900 text-lg">บีบอัดแนะนำ (Recommended)</span>
                                 <span className="text-sm text-gray-600 font-medium block mt-1">
-                                  คุณภาพดี ขนาดไฟล์เล็กลงกำลังดี
+                                  ขนาดไฟล์เล็กลง คุณภาพยังคงคมชัด (แปลงเป็นรูปภาพความละเอียดสูง)
                                 </span>
                               </div>
                             </div>
@@ -247,7 +247,7 @@ export default function CompressPdf() {
                               <div>
                                 <span className="block font-bold text-gray-900 text-lg">บีบอัดน้อย (Less)</span>
                                 <span className="text-sm text-gray-600 font-medium block mt-1">
-                                  คุณภาพสูง ขนาดไฟล์ลดลงเล็กน้อย
+                                  คุณภาพดั้งเดิม 100% ตัวหนังสือคลุมดำได้ (ลดขนาดด้วยการจัดเรียงข้อมูลใหม่)
                                 </span>
                               </div>
                             </div>
