@@ -130,8 +130,11 @@ export default function OrganizePdf() {
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport } as any).promise;
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         newPages.push({

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, FileUp, CheckCircle2, Download } from 'lucide-react';
+import { FileText, FileUp, CheckCircle2, Download, Settings2, Info } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import PdfThumbnail from '../components/PdfThumbnail';
@@ -16,6 +16,9 @@ export default function CompressPdf() {
   const [oldSize, setOldSize] = useState(0);
   const [newSize, setNewSize] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Settings
+  const [level, setLevel] = useState<'extreme' | 'recommended' | 'less'>('recommended');
 
   useEffect(() => {
     return () => {
@@ -50,50 +53,76 @@ export default function CompressPdf() {
     setIsProcessing(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const data = new Uint8Array(arrayBuffer);
-      
-      // We use pdfjs-dist to render pages as lower quality JPEGs to actually compress the file
-      const loadingTask = pdfjsLib.getDocument({ data });
-      const originalPdf = await loadingTask.promise;
-      const totalPages = originalPdf.numPages;
-      
-      const newPdfDoc = await PDFDocument.create();
-      
-      for (let i = 1; i <= totalPages; i++) {
-        const page = await originalPdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.5 }); // Lower scale for compression
-        
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) continue;
-        
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        
-        await page.render({ canvasContext: ctx, viewport } as any).promise;
-        
-        // Convert to JPEG with compression quality
-        const imgData = canvas.toDataURL('image/jpeg', 0.6); 
-        
-      // Add to new PDF
-        const imgBytes = await fetch(imgData).then(res => res.arrayBuffer());
-        const pdfImage = await newPdfDoc.embedJpg(imgBytes);
-        
-        const pdfPage = newPdfDoc.addPage([viewport.width, viewport.height]);
-        pdfPage.drawImage(pdfImage, {
-          x: 0,
-          y: 0,
-          width: viewport.width,
-          height: viewport.height,
-        });
+      let pdfBytes: Uint8Array;
 
-        page.cleanup();
-      }
-      originalPdf.cleanup();
-      loadingTask.destroy();
+      // 1. Always do repack first (Fast, Text Mode / Safe Mode)
+      // This preserves text, vectors, and structure without rasterizing.
+      const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      const repackBytes = await pdfDoc.save({ useObjectStreams: true });
       
-      const pdfBytes = await newPdfDoc.save({ useObjectStreams: true });
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      let finalBytes = repackBytes;
+
+      if (level === 'recommended' || level === 'extreme') {
+        // Image Mode: Rasterize pages for heavy compression
+        const data = new Uint8Array(arrayBuffer);
+        const loadingTask = pdfjsLib.getDocument({ data });
+        const originalPdf = await loadingTask.promise;
+        const totalPages = originalPdf.numPages;
+        
+        const newPdfDoc = await PDFDocument.create();
+        
+        // Determine scale and quality based on settings
+        const scale = level === 'recommended' ? 2.0 : 1.3;
+        const jpegQuality = level === 'recommended' ? 0.75 : 0.5;
+        
+        for (let i = 1; i <= totalPages; i++) {
+          const page = await originalPdf.getPage(i);
+          const viewport = page.getViewport({ scale });
+          
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) continue;
+          
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          await page.render({ canvasContext: ctx, viewport } as any).promise;
+          
+          const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
+          const imgBytesRes = await fetch(imgData).then(res => res.arrayBuffer());
+          const pdfImage = await newPdfDoc.embedJpg(imgBytesRes);
+          
+          // Add page with original dimensions, not scaled dimensions
+          const originalViewport = page.getViewport({ scale: 1.0 });
+          const pdfPage = newPdfDoc.addPage([originalViewport.width, originalViewport.height]);
+          
+          pdfPage.drawImage(pdfImage, {
+            x: 0,
+            y: 0,
+            width: originalViewport.width,
+            height: originalViewport.height,
+          });
+          page.cleanup();
+        }
+        originalPdf.cleanup();
+        loadingTask.destroy();
+        
+        const rasterBytes = await newPdfDoc.save({ useObjectStreams: true });
+
+        // Smart Fallback: 
+        // If the rasterized version is actually smaller, use it.
+        // If it's larger (which happens often for text-only PDFs), we fallback to repackBytes to preserve quality and size!
+        if (rasterBytes.length < repackBytes.length) {
+          finalBytes = rasterBytes;
+        } else {
+          console.log('Smart fallback activated: rasterizing increased size, falling back to repack.');
+        }
+      }
+      
+      const blob = new Blob([finalBytes], { type: 'application/pdf' });
       setNewSize(blob.size);
       setResultPdfBlob(blob);
       setResultPdfUrl(URL.createObjectURL(blob));
@@ -106,65 +135,191 @@ export default function CompressPdf() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-12 text-center">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-display font-black mb-4 text-black text-center">บีบอัด PDF</h1>
-        <p className="text-lg text-gray-600 font-medium">ลดขนาดไฟล์ PDF โดยยังคงคุณภาพไว้</p>
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="text-center mb-10">
+        <h1 className="text-4xl font-display font-black tracking-tight mb-4 flex items-center justify-center gap-3">
+          <FileUp className="w-10 h-10 text-green-500" />
+          บีบอัด PDF
+        </h1>
+        <p className="text-gray-600 font-medium">ลดขนาดไฟล์ PDF พร้อมตัวเลือกรักษาคุณภาพข้อความสำหรับ PDF แท้</p>
       </div>
 
-      {!file ? (
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="max-w-xl mx-auto border-2 border-dashed rounded-3xl p-12 bg-white flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 transition border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
-        >
-          <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="hidden" />
-          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4">
-            <FileUp className="w-8 h-8" />
+      <div className="bg-white border-2 border-black rounded-2xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        {!file ? (
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="border-4 border-dashed border-gray-300 rounded-xl p-16 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors"
+          >
+            <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="hidden" />
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+              <FileUp className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2">เลือกเอกสาร PDF</h3>
+            <p className="text-gray-500 font-medium">คลิกหรือลากไฟล์มาวางที่นี่</p>
           </div>
-          <h3 className="text-xl font-bold mb-2">เลือกเอกสาร PDF</h3>
-        </div>
-      ) : (
-        <div className="max-w-xl mx-auto bg-white border-2 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-left">
-          <h3 className="font-bold text-lg mb-2 truncate">{file.name}</h3>
-          <p className="text-sm font-bold text-gray-500 mb-6">ขนาดไฟล์ตั้งต้น: {formatFileSize(oldSize)}</p>
-          
-          <div className="w-full h-80 mb-6 border-2 border-black rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            {resultPdfBlob ? (
-              <PdfThumbnail file={resultPdfBlob} className="max-w-full max-h-full object-contain border border-gray-300 shadow-sm" />
+        ) : (
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-gray-50 border-2 border-black rounded-xl">
+              <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                <div className="w-12 h-12 bg-green-100 text-green-600 rounded-lg flex items-center justify-center border border-black">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="text-left">
+                  <h4 className="font-bold text-lg truncate max-w-[200px] sm:max-w-xs">{file.name}</h4>
+                  <p className="text-sm text-gray-500 font-medium">ขนาดไฟล์ตั้งต้น: {formatFileSize(oldSize)}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setFile(null);
+                  setResultPdfUrl(null);
+                  setResultPdfBlob(null);
+                  setPreviewUrl(null);
+                }}
+                className="text-sm text-red-600 font-bold hover:underline"
+                disabled={isProcessing}
+              >
+                เลือกไฟล์ใหม่
+              </button>
+            </div>
+
+            {!resultPdfUrl ? (
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* Left: Settings */}
+                <div className="w-full lg:w-1/3 space-y-6">
+                  <div className="border-2 border-black rounded-xl p-5 bg-white space-y-6">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                      <Settings2 className="w-5 h-5" />
+                      ตั้งค่าการบีบอัด
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="space-y-3">
+                          <label className={`block p-4 border-2 rounded-xl cursor-pointer transition-colors ${level === 'extreme' ? 'border-green-500 bg-green-50 shadow-[4px_4px_0px_0px_rgba(34,197,94,1)] -translate-y-1' : 'border-black hover:border-green-500 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'}`}>
+                            <div className="flex items-start gap-3">
+                              <input 
+                                type="radio" 
+                                name="level" 
+                                value="extreme" 
+                                checked={level === 'extreme'} 
+                                onChange={() => setLevel('extreme')} 
+                                className="mt-1.5 w-4 h-4 text-green-600 accent-green-600 focus:ring-green-600"
+                              />
+                              <div>
+                                <span className="block font-bold text-gray-900 text-lg">บีบอัดสูงสุด (Extreme)</span>
+                                <span className="text-sm text-gray-600 font-medium block mt-1">
+                                  คุณภาพน้อยลง ขนาดไฟล์เล็กที่สุด
+                                </span>
+                              </div>
+                            </div>
+                          </label>
+
+                          <label className={`block p-4 border-2 rounded-xl cursor-pointer transition-colors ${level === 'recommended' ? 'border-green-500 bg-green-50 shadow-[4px_4px_0px_0px_rgba(34,197,94,1)] -translate-y-1' : 'border-black hover:border-green-500 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'}`}>
+                            <div className="flex items-start gap-3">
+                              <input 
+                                type="radio" 
+                                name="level" 
+                                value="recommended" 
+                                checked={level === 'recommended'} 
+                                onChange={() => setLevel('recommended')} 
+                                className="mt-1.5 w-4 h-4 text-green-600 accent-green-600 focus:ring-green-600"
+                              />
+                              <div>
+                                <span className="block font-bold text-gray-900 text-lg">บีบอัดแนะนำ (Recommended)</span>
+                                <span className="text-sm text-gray-600 font-medium block mt-1">
+                                  คุณภาพดี ขนาดไฟล์เล็กลงกำลังดี
+                                </span>
+                              </div>
+                            </div>
+                          </label>
+
+                          <label className={`block p-4 border-2 rounded-xl cursor-pointer transition-colors ${level === 'less' ? 'border-green-500 bg-green-50 shadow-[4px_4px_0px_0px_rgba(34,197,94,1)] -translate-y-1' : 'border-black hover:border-green-500 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1'}`}>
+                            <div className="flex items-start gap-3">
+                              <input 
+                                type="radio" 
+                                name="level" 
+                                value="less" 
+                                checked={level === 'less'} 
+                                onChange={() => setLevel('less')} 
+                                className="mt-1.5 w-4 h-4 text-green-600 accent-green-600 focus:ring-green-600"
+                              />
+                              <div>
+                                <span className="block font-bold text-gray-900 text-lg">บีบอัดน้อย (Less)</span>
+                                <span className="text-sm text-gray-600 font-medium block mt-1">
+                                  คุณภาพสูง ขนาดไฟล์ลดลงเล็กน้อย
+                                </span>
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={compressPdf}
+                    disabled={isProcessing}
+                    className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 border-2 border-black transition-all ${
+                      isProcessing 
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                        : 'bg-green-400 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]'
+                    }`}
+                  >
+                    {isProcessing ? 'กำลังประมวลผล...' : 'เริ่มบีบอัด PDF'}
+                  </button>
+                </div>
+
+                {/* Right: Preview */}
+                <div className="w-full lg:w-2/3">
+                  <div className="w-full h-80 lg:h-full min-h-[400px] border-2 border-black rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <PdfThumbnail file={file} className="max-w-full max-h-full object-contain border border-gray-300 shadow-sm" />
+                  </div>
+                </div>
+              </div>
             ) : (
-              <PdfThumbnail file={file} className="max-w-full max-h-full object-contain border border-gray-300 shadow-sm" />
+              <div className="p-8 bg-green-50 border-2 border-black rounded-xl text-center space-y-6">
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto border-2 border-black">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">บีบอัดไฟล์สำเร็จ!</h3>
+                  <div className="inline-flex items-center gap-4 bg-white px-6 py-3 rounded-xl border-2 border-black shadow-sm font-bold">
+                    <div className="text-gray-500 line-through">{formatFileSize(oldSize)}</div>
+                    <div className="text-xl text-green-600">👉 {formatFileSize(newSize)}</div>
+                  </div>
+                </div>
+                
+                {oldSize === newSize && (
+                  <p className="text-sm font-medium text-orange-600 max-w-md mx-auto">
+                    * ไฟล์นี้เป็นไฟล์ที่มีขนาดเล็กที่สุดเท่าที่จะทำได้แล้ว ระบบได้เลือกใช้เวอร์ชันที่ชัดที่สุดเพื่อรักษาคุณภาพ
+                  </p>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
+                  <button
+                    onClick={() => {
+                      setResultPdfUrl(null);
+                      setResultPdfBlob(null);
+                    }}
+                    className="px-6 py-4 bg-white text-black border-2 border-black rounded-xl font-bold hover:bg-gray-50 transition-colors"
+                  >
+                    ตั้งค่าใหม่
+                  </button>
+                  <a
+                    href={resultPdfUrl}
+                    download={`compressed_${file.name}`}
+                    className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                  >
+                    <Download className="w-6 h-6" />
+                    ดาวน์โหลด PDF
+                  </a>
+                </div>
+              </div>
             )}
           </div>
-
-          {!resultPdfUrl ? (
-            <button 
-              onClick={compressPdf}
-              disabled={isProcessing}
-              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 transition"
-            >
-              {isProcessing ? 'กำลังบีบอัด...' : 'บีบอัด PDF'}
-            </button>
-          ) : (
-            <div className="space-y-4">
-               <div className="bg-emerald-100 p-4 rounded-xl border-2 border-black flex items-center gap-3">
-                 <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-                 <div>
-                   <span className="font-bold text-emerald-800 block">บีบอัดไฟล์สำเร็จแล้ว!</span>
-                   <span className="text-sm font-bold text-emerald-700">ขนาดใหม่: {formatFileSize(newSize)} (การลดขนาดขึ้นอยู่กับโครงสร้างไฟล์เดิม)</span>
-                 </div>
-               </div>
-               <a 
-                 href={resultPdfUrl}
-                 download={`compressed_${file.name}`}
-                 className="w-full py-4 bg-black hover:bg-neutral-800 text-white font-black rounded-xl border-2 border-black flex items-center justify-center gap-2 transition"
-               >
-                 <Download className="w-5 h-5" /> ดาวน์โหลด PDF ที่เล็กลง
-               </a>
-               <button onClick={() => { setFile(null); setResultPdfUrl(null); setResultPdfBlob(null); setPreviewUrl(null); }} className="w-full text-center text-sm font-bold underline text-gray-500">บีบอัดไฟล์อื่น</button>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -90,6 +90,9 @@ export default function PdfThumbnail({ file, pageNumber = 1, className = '' }: P
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
         await page.render({ canvasContext: ctx, viewport } as any).promise;
         
         if (active) {

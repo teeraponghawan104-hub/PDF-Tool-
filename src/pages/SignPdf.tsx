@@ -75,7 +75,11 @@ export default function SignPdf() {
       if (!ctx) throw new Error('No canvas context');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      await page.render({ canvasContext: ctx, viewport } as any).promise;
       setPreviewImage(canvas.toDataURL('image/jpeg', 0.8));
     } catch (err: any) {
       console.error("Preview load error", err);
