@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { FileStack, FileText } from 'lucide-react';
+import InstallButton from './InstallButton';
 
 export default function Layout() {
   return (
     <div className="min-h-screen bg-[#fafafa] text-[#1a1a1a] font-sans">
+      <InstallButton isMobile />
       {/* Navigation */}
       <nav className="bg-white border-b-2 border-black sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
@@ -24,7 +26,10 @@ export default function Layout() {
               <Link to="/jpg-to-pdf" className="hover:text-red-600 transition">JPG เป็น PDF</Link>
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center gap-4">
+              <div className="hidden md:block">
+                <InstallButton />
+              </div>
               <button className="md:hidden p-2">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
