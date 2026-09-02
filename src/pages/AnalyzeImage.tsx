@@ -65,7 +65,11 @@ export default function AnalyzeImage() {
       setResult(data.result);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ');
+      if (err instanceof TypeError && err.message === 'Failed to fetch') {
+          setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ หากคุณกำลังใช้งานผ่านพรีวิว กรุณาคลิกปุ่ม "เปิดในแท็บใหม่" ที่มุมขวาบน หรือตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณ');
+      } else {
+          setError(err.message || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพ');
+      }
     } finally {
       setIsAnalyzing(false);
     }
