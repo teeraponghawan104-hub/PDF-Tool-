@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
 
 // Define the worker root using Vite's URL import
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 // WeakMap cache to store generated thumbnail data URLs so they render instantly upon re-ordering
 const thumbnailCache = new WeakMap<File | Blob, Record<number, string>>();
@@ -15,9 +15,8 @@ const getPdfDoc = (file: File | Blob): Promise<pdfjsLib.PDFDocumentProxy> => {
   let docPromise = pdfDocumentCache.get(file);
   if (!docPromise) {
     docPromise = (async () => {
-      const arrayBuffer = await file.arrayBuffer();
-      const data = new Uint8Array(arrayBuffer);
-      const loadingTask = pdfjsLib.getDocument({ data });
+      const url = URL.createObjectURL(file);
+      const loadingTask = pdfjsLib.getDocument({ url });
       return loadingTask.promise;
     })();
     pdfDocumentCache.set(file, docPromise);
@@ -80,8 +79,10 @@ export default function PdfThumbnail({ file, pageNumber = 1, className = '' }: P
         const pdf = await getPdfDoc(file);
         const page = await pdf.getPage(pageNumber);
         
-        // Use a small scale for thumbnail to keep it fast
-        const viewport = page.getViewport({ scale: 0.5 }); 
+        // Dynamically calculate scale to keep thumbnail small and fast
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+        const scale = Math.min(400 / unscaledViewport.width, 1.0);
+        const viewport = page.getViewport({ scale }); 
         
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');

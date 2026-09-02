@@ -43,7 +43,20 @@ export default function AnalyzeImage() {
         body: formData,
       });
 
-      const data = await res.json();
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("Non-JSON response:", text);
+        
+        if (text.includes("Cookie check") || text.includes("aistudio_auth_flow")) {
+          throw new Error('เบราว์เซอร์ของคุณบล็อกการทำงานใน iFrame กรุณาคลิกปุ่ม "เปิดในแท็บใหม่ (Open in new tab)" ที่มุมขวาบนเพื่อใช้งานฟีเจอร์นี้');
+        }
+
+        throw new Error(res.status === 413 ? 'ขนาดไฟล์ใหญ่เกินไป' : 'เซิร์ฟเวอร์ตอบกลับผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to analyze image');

@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileText, FileUp, CheckCircle2, Download, Settings2, Info } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
+
 import PdfThumbnail from '../components/PdfThumbnail';
 
-// Define the worker root from CDN so it resolves with correct MIME types reliably
+// Define the worker root using Vite's URL import
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export default function CompressPdf() {
@@ -64,8 +65,8 @@ export default function CompressPdf() {
 
       if (level === 'recommended' || level === 'extreme') {
         // Image Mode: Rasterize pages for heavy compression
-        const data = new Uint8Array(arrayBuffer);
-        const loadingTask = pdfjsLib.getDocument({ data });
+        const objectUrl = URL.createObjectURL(file);
+        const loadingTask = pdfjsLib.getDocument({ url: objectUrl });
         const originalPdf = await loadingTask.promise;
         const totalPages = originalPdf.numPages;
         

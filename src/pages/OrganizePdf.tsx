@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileUp, Download, CheckCircle2, AlertTriangle, LayoutGrid, Loader2, Trash2 } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
 import {
   DndContext,
   closestCenter,
@@ -21,15 +21,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+import PdfThumbnail from '../components/PdfThumbnail';
 
 interface PageItem {
   id: string;
   originalIndex: number;
-  thumbnail: string;
 }
 
-function SortablePage({ id, item, pageNum, onRemove }: { id: string, item: PageItem, pageNum: number, onRemove: (id: string) => void }) {
+function SortablePage({ id, item, pageNum, file, onRemove }: { id: string, item: PageItem, pageNum: number, file: File, onRemove: (id: string) => void }) {
   const {
     attributes,
     listeners,
@@ -62,8 +63,8 @@ function SortablePage({ id, item, pageNum, onRemove }: { id: string, item: PageI
         <Trash2 className="w-4 h-4" />
       </button>
       <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex flex-col items-center">
-        <div className="w-full aspect-[1/1.414] bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shadow-sm flex items-center justify-center">
-          <img src={item.thumbnail} alt={`Page`} className="w-full h-full object-contain pointer-events-none" />
+        <div className="w-full aspect-[1/1.414] bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shadow-sm flex items-center justify-center pointer-events-none">
+          <PdfThumbnail file={file} pageNumber={item.originalIndex + 1} className="w-full h-full object-contain" />
         </div>
         <div className="mt-3 font-bold text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded-full">หน้า {pageNum}</div>
       </div>
@@ -115,38 +116,22 @@ export default function OrganizePdf() {
       const arrayBuffer = await pdfFile.arrayBuffer();
       setFileBuffer(arrayBuffer);
       
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+      const objectUrl = URL.createObjectURL(pdfFile);
+      const loadingTask = pdfjsLib.getDocument({ url: objectUrl });
+      const pdf = await loadingTask.promise;
       const numPages = pdf.numPages;
       const newPages: PageItem[] = [];
 
       for (let i = 1; i <= numPages; i++) {
-        const page = await pdf.getPage(i);
-        // Use a smaller scale for thumbnails to save memory and process faster
-        const viewport = page.getViewport({ scale: 0.5 });
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Could not get canvas context');
-
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        await page.render({ canvasContext: ctx, viewport } as any).promise;
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         newPages.push({
           id: `page-${i}-${Math.random().toString(36).substr(2, 9)}`,
           originalIndex: i - 1, // 0-indexed for pdf-lib
-          thumbnail: dataUrl
         });
-
-        setLoadProgress(Math.round((i / numPages) * 100));
       }
 
       setPages(newPages);
+      pdf.cleanup();
+      loadingTask.destroy();
     } catch (err: any) {
       console.error('Error loading PDF:', err);
       setError('ไม่สามารถโหลดหน้า PDF ได้: ' + (err.message || 'Unknown error'));
@@ -306,6 +291,7 @@ export default function OrganizePdf() {
                             id={page.id} 
                             item={page} 
                             pageNum={index + 1}
+                            file={file!}
                             onRemove={handleRemovePage}
                           />
                         ))}

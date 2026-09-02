@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Image as ImageIcon, FileUp, CheckCircle2, Download, AlertTriangle } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+
 import JSZip from 'jszip';
 import PdfThumbnail from '../components/PdfThumbnail';
 
-// Define the worker root from CDN so it resolves with correct MIME types reliably
+// Define the worker root using Vite's URL import
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface ConvertedImage {
@@ -43,9 +44,8 @@ export default function PdfToJpg() {
       setProgress(0);
       
       try {
-        const arrayBuffer = await f.arrayBuffer();
-        const data = new Uint8Array(arrayBuffer);
-        const loadingTask = pdfjsLib.getDocument({ data });
+        const url = URL.createObjectURL(f);
+        const loadingTask = pdfjsLib.getDocument({ url });
         const pdf = await loadingTask.promise;
         setMaxPages(pdf.numPages);
         pdf.cleanup();
@@ -66,9 +66,8 @@ export default function PdfToJpg() {
     setImages([]);
     
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const data = new Uint8Array(arrayBuffer);
-      const loadingTask = pdfjsLib.getDocument({ data });
+      const url = URL.createObjectURL(file);
+      const loadingTask = pdfjsLib.getDocument({ url });
       const pdf = await loadingTask.promise;
       const totalPages = pdf.numPages;
       

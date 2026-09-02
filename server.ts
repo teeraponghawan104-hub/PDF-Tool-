@@ -4,7 +4,12 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  }
+});
 
 async function startServer() {
   const app = express();
@@ -52,6 +57,12 @@ async function startServer() {
       console.error("Gemini API error:", error);
       res.status(500).json({ error: error.message || "Failed to analyze image" });
     }
+  });
+
+  // Global error handler for JSON responses (e.g. Multer errors)
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("Unhandled server error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   });
 
   // Vite middleware for development

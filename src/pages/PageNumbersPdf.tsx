@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileUp, Download, CheckCircle2, AlertTriangle, Hash, Settings2, Loader2 } from 'lucide-react';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export default function PageNumbersPdf() {
   const [file, setFile] = useState<File | null>(null);
@@ -50,7 +50,9 @@ export default function PageNumbersPdf() {
   const loadPreview = async (buffer: ArrayBuffer) => {
     setPreviewLoading(true);
     try {
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+      const url = URL.createObjectURL(file!);
+      const loadingTask = pdfjsLib.getDocument({ url });
+      const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1.5 });
       const canvas = document.createElement('canvas');

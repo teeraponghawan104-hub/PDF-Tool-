@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileUp, Download, CheckCircle2, AlertTriangle, PenTool, Eraser, Settings2, Loader2, Image as ImageIcon, Move } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export default function SignPdf() {
   const [file, setFile] = useState<File | null>(null);
@@ -63,7 +63,9 @@ export default function SignPdf() {
   const loadPreview = async (buffer: ArrayBuffer, pageType: 'first' | 'last' | 'all') => {
     setPreviewLoading(true);
     try {
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+      const url = URL.createObjectURL(file!);
+      const loadingTask = pdfjsLib.getDocument({ url });
+      const pdf = await loadingTask.promise;
       let pageNum = 1;
       if (pageType === 'last') {
         pageNum = pdf.numPages;
