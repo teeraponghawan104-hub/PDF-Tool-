@@ -1,24 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-
-// Define the worker root using Vite's URL import
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { loadPdfDocument } from '../utils/pdfHelper';
 
 // WeakMap cache to store generated thumbnail data URLs so they render instantly upon re-ordering
 const thumbnailCache = new WeakMap<File | Blob, Record<number, string>>();
 
 // WeakMap cache to store loaded PDF Document promises to prevent loading/parsing the document multiple times
-const pdfDocumentCache = new WeakMap<File | Blob, Promise<pdfjsLib.PDFDocumentProxy>>();
+const pdfDocumentCache = new WeakMap<File | Blob, Promise<PDFDocumentProxy>>();
 
-const getPdfDoc = (file: File | Blob): Promise<pdfjsLib.PDFDocumentProxy> => {
+const getPdfDoc = (file: File | Blob): Promise<PDFDocumentProxy> => {
   let docPromise = pdfDocumentCache.get(file);
   if (!docPromise) {
-    docPromise = (async () => {
-      const url = URL.createObjectURL(file);
-      const loadingTask = pdfjsLib.getDocument({ url });
-      return loadingTask.promise;
-    })();
+    docPromise = loadPdfDocument(file);
     pdfDocumentCache.set(file, docPromise);
   }
   return docPromise;

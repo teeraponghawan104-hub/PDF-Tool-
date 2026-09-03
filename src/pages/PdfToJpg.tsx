@@ -1,12 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Image as ImageIcon, FileUp, CheckCircle2, Download, AlertTriangle } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
-
+import { loadPdfDocument } from '../utils/pdfHelper';
 import JSZip from 'jszip';
 import PdfThumbnail from '../components/PdfThumbnail';
-
-// Define the worker root using Vite's URL import
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface ConvertedImage {
   id: string;
@@ -44,12 +40,9 @@ export default function PdfToJpg() {
       setProgress(0);
       
       try {
-        const url = URL.createObjectURL(f);
-        const loadingTask = pdfjsLib.getDocument({ url });
-        const pdf = await loadingTask.promise;
+        const pdf = await loadPdfDocument(f);
         setMaxPages(pdf.numPages);
         pdf.cleanup();
-        loadingTask.destroy();
       } catch (err) {
         console.error(err);
         setMaxPages(0);
@@ -66,9 +59,7 @@ export default function PdfToJpg() {
     setImages([]);
     
     try {
-      const url = URL.createObjectURL(file);
-      const loadingTask = pdfjsLib.getDocument({ url });
-      const pdf = await loadingTask.promise;
+      const pdf = await loadPdfDocument(file);
       const totalPages = pdf.numPages;
       
       const newImages: ConvertedImage[] = [];
@@ -76,10 +67,10 @@ export default function PdfToJpg() {
       for (let i = 1; i <= totalPages; i++) {
         const page = await pdf.getPage(i);
         const originalViewport = page.getViewport({ scale: 1.0 });
-        // Use high scale to get the clearest possible image, but prevent crashing by capping max pixels (e.g., 4000px)
-        let scale = 4.0;
-        if (originalViewport.width * scale > 4000 || originalViewport.height * scale > 4000) {
-          scale = Math.min(4000 / originalViewport.width, 4000 / originalViewport.height, scale);
+        // Target crisp 150-200 DPI without exhausting mobile browser canvas RAM (max 2400px)
+        let scale = 2.0;
+        if (originalViewport.width * scale > 2400 || originalViewport.height * scale > 2400) {
+          scale = Math.min(2400 / originalViewport.width, 2400 / originalViewport.height, scale);
         }
         const viewport = page.getViewport({ scale });
         
@@ -89,14 +80,18 @@ export default function PdfToJpg() {
         
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+
+        // Fill background with white to avoid transparent areas appearing black in JPEG
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         await page.render({
           canvasContext: ctx,
           viewport: viewport
         } as any).promise;
         
-        // Use maximum quality (1.0) for the sharpest JPEG output
-        const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+        // Use high quality (0.92) for sharp JPEG output
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         newImages.push({
           id: `page_${i}_${Date.now()}`,
           url: dataUrl,
@@ -108,7 +103,6 @@ export default function PdfToJpg() {
       }
       
       pdf.cleanup();
-      loadingTask.destroy();
       setImages(newImages);
     } catch (e: any) {
       console.error(e);

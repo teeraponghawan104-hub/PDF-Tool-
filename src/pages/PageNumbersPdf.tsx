@@ -1,10 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FileUp, Download, CheckCircle2, AlertTriangle, Hash, Settings2, Loader2 } from 'lucide-react';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
-
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+import { loadPdfDocument } from '../utils/pdfHelper';
 
 export default function PageNumbersPdf() {
   const [file, setFile] = useState<File | null>(null);
@@ -50,9 +47,7 @@ export default function PageNumbersPdf() {
   const loadPreview = async (buffer: ArrayBuffer) => {
     setPreviewLoading(true);
     try {
-      const url = URL.createObjectURL(file!);
-      const loadingTask = pdfjsLib.getDocument({ url });
-      const pdf = await loadingTask.promise;
+      const pdf = await loadPdfDocument(buffer);
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1.5 });
       const canvas = document.createElement('canvas');
@@ -66,6 +61,7 @@ export default function PageNumbersPdf() {
       
       await page.render({ canvasContext: ctx, viewport } as any).promise;
       setPreviewImage(canvas.toDataURL('image/jpeg', 0.8));
+      pdf.cleanup();
     } catch (err: any) {
       console.error("Preview load error", err);
       setError('ไม่สามารถโหลดตัวอย่างหน้ากระดาษได้: ' + err.message);

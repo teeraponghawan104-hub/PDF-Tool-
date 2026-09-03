@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FileUp, Download, CheckCircle2, AlertTriangle, LayoutGrid, Loader2, Trash2 } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
+import { loadPdfDocument } from '../utils/pdfHelper';
 
 import {
   DndContext,
@@ -20,8 +20,6 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 import PdfThumbnail from '../components/PdfThumbnail';
 
@@ -116,9 +114,7 @@ export default function OrganizePdf() {
       const arrayBuffer = await pdfFile.arrayBuffer();
       setFileBuffer(arrayBuffer);
       
-      const objectUrl = URL.createObjectURL(pdfFile);
-      const loadingTask = pdfjsLib.getDocument({ url: objectUrl });
-      const pdf = await loadingTask.promise;
+      const pdf = await loadPdfDocument(arrayBuffer);
       const numPages = pdf.numPages;
       const newPages: PageItem[] = [];
 
@@ -131,7 +127,6 @@ export default function OrganizePdf() {
 
       setPages(newPages);
       pdf.cleanup();
-      loadingTask.destroy();
     } catch (err: any) {
       console.error('Error loading PDF:', err);
       setError('ไม่สามารถโหลดหน้า PDF ได้: ' + (err.message || 'Unknown error'));

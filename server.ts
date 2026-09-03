@@ -65,6 +65,9 @@ async function startServer() {
     res.status(500).json({ error: err.message || "Internal server error" });
   });
 
+  // Serve static files from public
+  app.use(express.static(path.join(process.cwd(), "public")));
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

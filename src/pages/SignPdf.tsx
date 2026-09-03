@@ -1,10 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FileUp, Download, CheckCircle2, AlertTriangle, PenTool, Eraser, Settings2, Loader2, Image as ImageIcon, Move } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
-
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+import { loadPdfDocument } from '../utils/pdfHelper';
 
 export default function SignPdf() {
   const [file, setFile] = useState<File | null>(null);
@@ -63,9 +60,7 @@ export default function SignPdf() {
   const loadPreview = async (buffer: ArrayBuffer, pageType: 'first' | 'last' | 'all') => {
     setPreviewLoading(true);
     try {
-      const url = URL.createObjectURL(file!);
-      const loadingTask = pdfjsLib.getDocument({ url });
-      const pdf = await loadingTask.promise;
+      const pdf = await loadPdfDocument(buffer);
       let pageNum = 1;
       if (pageType === 'last') {
         pageNum = pdf.numPages;
@@ -83,6 +78,7 @@ export default function SignPdf() {
       
       await page.render({ canvasContext: ctx, viewport } as any).promise;
       setPreviewImage(canvas.toDataURL('image/jpeg', 0.8));
+      pdf.cleanup();
     } catch (err: any) {
       console.error("Preview load error", err);
       setError('ไม่สามารถโหลดตัวอย่างหน้ากระดาษได้: ' + err.message);

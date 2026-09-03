@@ -1,12 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FileText, FileUp, CheckCircle2, Download, Settings2, Info } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
+import { loadPdfDocument } from '../utils/pdfHelper';
 
 import PdfThumbnail from '../components/PdfThumbnail';
-
-// Define the worker root using Vite's URL import
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export default function CompressPdf() {
   const [file, setFile] = useState<File | null>(null);
@@ -65,9 +62,7 @@ export default function CompressPdf() {
 
       if (level === 'recommended' || level === 'extreme') {
         // Image Mode: Rasterize pages for heavy compression
-        const objectUrl = URL.createObjectURL(file);
-        const loadingTask = pdfjsLib.getDocument({ url: objectUrl });
-        const originalPdf = await loadingTask.promise;
+        const originalPdf = await loadPdfDocument(arrayBuffer);
         const totalPages = originalPdf.numPages;
         
         const newPdfDoc = await PDFDocument.create();
@@ -109,7 +104,6 @@ export default function CompressPdf() {
           page.cleanup();
         }
         originalPdf.cleanup();
-        loadingTask.destroy();
         
         const rasterBytes = await newPdfDoc.save({ useObjectStreams: true });
 
