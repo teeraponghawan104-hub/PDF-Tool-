@@ -1,15 +1,6 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <script>
-      window.onerror = function(message, source, lineno, colno, error) {
-        document.body.innerHTML += '<div style="color:red; background:white; padding:20px; z-index:9999; position:absolute; top:0; left:0; right:0;"><b>Global Error:</b> ' + message + '<br/>' + source + ':' + lineno + ':' + colno + '<pre>' + (error ? error.stack : '') + '</pre></div>';
-      };
-      window.addEventListener('unhandledrejection', function(event) {
-        document.body.innerHTML += '<div style="color:red; background:white; padding:20px; z-index:9999; position:absolute; top:0; left:0; right:0;"><b>Unhandled Promise Rejection:</b> ' + (event.reason ? event.reason.stack || event.reason : event) + '</div>';
-      });
-    </script>
-  
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#dc2626" />
