@@ -1,6 +1,7 @@
-<!doctype html>
-<html lang="en">
-  <head>
+const fs = require('fs');
+const content = fs.readFileSync('index.html', 'utf-8');
+if (!content.includes('window.onerror')) {
+  const script = `
     <script>
       window.onerror = function(message, source, lineno, colno, error) {
         document.body.innerHTML += '<div style="color:red; background:white; padding:20px; z-index:9999; position:absolute; top:0; left:0; right:0;"><b>Global Error:</b> ' + message + '<br/>' + source + ':' + lineno + ':' + colno + '<pre>' + (error ? error.stack : '') + '</pre></div>';
@@ -9,17 +10,7 @@
         document.body.innerHTML += '<div style="color:red; background:white; padding:20px; z-index:9999; position:absolute; top:0; left:0; right:0;"><b>Unhandled Promise Rejection:</b> ' + (event.reason ? event.reason.stack || event.reason : event) + '</div>';
       });
     </script>
-  
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#dc2626" />
-    <link rel="icon" type="image/png" href="/images/82.png" />
-    <link rel="apple-touch-icon" href="/images/82.png" />
-    <title>Thiwpdf</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
-
+  `;
+  const newContent = content.replace('<head>', '<head>' + script);
+  fs.writeFileSync('index.html', newContent);
+}
