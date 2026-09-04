@@ -2,11 +2,49 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#dc2626" />
+    <meta name="description" content="โปรแกรมสำหรับแปลงไฟล์รูปภาพ JPEG/JPG เป็นไฟล์ PDF ได้ทันทีโดยไม่จำกัดจำนวนไฟล์ พร้อมทั้งปรับแต่งขนาด จัดเรียงลำดับ และดาวน์โหลดได้โดยตรง" />
+    <meta name="application-name" content="Thiwpdf" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Thiwpdf" />
     <link rel="icon" type="image/png" href="/images/82.png" />
-    <link rel="apple-touch-icon" href="/images/82.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/pwa-512x512.png" />
     <title>Thiwpdf</title>
+    <script>
+      // Polyfill Promise.withResolvers for iOS Safari < 17.4 and older WebKit engines
+      if (typeof Promise.withResolvers === 'undefined') {
+        Promise.withResolvers = function () {
+          var resolve, reject;
+          var promise = new Promise(function (res, rej) {
+            resolve = res;
+            reject = rej;
+          });
+          return { promise: promise, resolve: resolve, reject: reject };
+        };
+      }
+      // Polyfill Array.prototype.at for older iOS Safari (before 15.4)
+      if (!Array.prototype.at) {
+        Array.prototype.at = function(n) {
+          n = Math.trunc(n) || 0;
+          if (n < 0) n += this.length;
+          if (n < 0 || n >= this.length) return undefined;
+          return this[n];
+        };
+      }
+      // Polyfill Object.hasOwn for older iOS Safari (before 15.4)
+      if (!Object.hasOwn) {
+        Object.hasOwn = function(obj, prop) {
+          return Object.prototype.hasOwnProperty.call(obj, prop);
+        };
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

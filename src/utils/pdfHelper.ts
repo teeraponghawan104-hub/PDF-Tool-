@@ -1,8 +1,10 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure the worker to use the local same-origin worker
+// Use Vite's worker import with our custom polyfilled worker for iOS compatibility
+import PdfWorker from '../workers/pdf.worker?worker';
+
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker();
 }
 
 /**

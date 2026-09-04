@@ -7,6 +7,13 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
+/* iOS PWA App-like experience */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
+}
+
 /* Custom fade effects and smooth file list scroll */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

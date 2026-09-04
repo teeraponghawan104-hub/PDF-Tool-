@@ -31,6 +31,7 @@ import {
 import { ImageFile, ConverterConfig, ConversionProgress } from '../types';
 import { getImageDimensions, revokeImageUrls } from '../utils/imageProcessor';
 import { convertImagesToPdf } from '../utils/pdfGenerator';
+import { saveOrShareFile, openFilePreview, isIOS } from '../utils/downloadHelper';
 import {
   DndContext,
   closestCenter,
@@ -477,21 +478,23 @@ export default function JpgToPdf() {
     if (!fileList) return;
     
     setIsLoadingFiles(true);
-    const acceptedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const filesArray = Array.from(fileList).filter(f => {
       const typeLower = f.type.toLowerCase();
       const nameLower = f.name.toLowerCase();
       return (
-        acceptedTypes.includes(typeLower) ||
+        typeLower.startsWith('image/') ||
         nameLower.endsWith('.jpg') ||
         nameLower.endsWith('.jpeg') ||
         nameLower.endsWith('.png') ||
-        nameLower.endsWith('.webp')
+        nameLower.endsWith('.webp') ||
+        nameLower.endsWith('.heic') ||
+        nameLower.endsWith('.heif') ||
+        nameLower.endsWith('.jfif')
       );
     });
 
     if (filesArray.length === 0) {
-      showToast('กรุณาเลือกไฟล์ภาพถ่ายสกุล JPG, JPEG, PNG หรือ WEBP เท่านั้น', 'error');
+      showToast('กรุณาเลือกไฟล์ภาพถ่ายสกุล JPG, PNG, WEBP หรือ HEIC', 'error');
       setIsLoadingFiles(false);
       return;
     }
@@ -764,16 +767,37 @@ export default function JpgToPdf() {
   };
 
   // Download trigger
-  const triggerPdfDownload = () => {
-    if (!pdfUrl) return;
+  const triggerPdfDownload = async () => {
+    if (!pdfBlob && !pdfUrl) return;
     const finalName = pdfFileName.trim() ? (pdfFileName.endsWith('.pdf') ? pdfFileName : `${pdfFileName}.pdf`) : 'converted_document.pdf';
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.download = finalName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('ดาวน์โหลดเอกสารสำเร็จแล้ว 📁', 'success');
+    
+    let blobToDownload = pdfBlob;
+    if (!blobToDownload && pdfUrl) {
+      try {
+        const resp = await fetch(pdfUrl);
+        blobToDownload = await resp.blob();
+      } catch (e) {
+        console.error('Fetch blob failed:', e);
+      }
+    }
+
+    if (blobToDownload) {
+      const res = await saveOrShareFile({
+        blob: blobToDownload,
+        filename: finalName,
+        mimeType: 'application/pdf',
+        title: finalName,
+      });
+      if (res.method === 'share') {
+        showToast('เปิดเมนูแชร์ / บันทึกลงเครื่องเรียบร้อย', 'success');
+      } else if (res.method === 'preview') {
+        showToast('เปิดดูเอกสารในแท็บใหม่เพื่อบันทึกเรียบร้อย', 'success');
+      } else if (res.method === 'download') {
+        showToast('ดาวน์โหลดเอกสารสำเร็จแล้ว 📁', 'success');
+      }
+    } else if (pdfUrl) {
+      openFilePreview(pdfUrl);
+    }
   };
 
   // Calc total selected queue statistics
@@ -1177,8 +1201,8 @@ export default function JpgToPdf() {
                   ref={fileInputRef}
                   onChange={handleFileInputChange}
                   multiple
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  className="hidden"
+                  accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
+                  className="sr-only"
                 />
 
                 <div className="relative mb-6">
@@ -1281,11 +1305,10 @@ export default function JpgToPdf() {
                     </button>
                     <input
                       type="file"
-                      ref={fileInputRef}
                       onChange={handleFileInputChange}
                       multiple
-                      accept="image/jpeg,image/jpg,image/png,image/webp"
-                      className="hidden"
+                      accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
+                      className="sr-only"
                     />
                   </div>
                 </div>

@@ -10,10 +10,12 @@ import {
   RefreshCw, 
   Layers, 
   FileText,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ExternalLink
 } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import PdfThumbnail from '../components/PdfThumbnail';
+import { saveOrShareFile, openFilePreview } from '../utils/downloadHelper';
 
 // Helper function to consolidate an array of sorted numbers (e.g. [1, 2, 3, 5, 8, 9]) into standard range text ("1-3, 5, 8-9")
 const formatPageRange = (pages: number[]): string => {
@@ -199,7 +201,7 @@ export default function SplitPdf() {
             ref={fileInputRef} 
             onChange={handleFile} 
             accept=".pdf,application/pdf" 
-            className="hidden" 
+            className="sr-only" 
           />
           <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6">
             <FileUp className="w-8 h-8" />
@@ -363,13 +365,34 @@ export default function SplitPdf() {
                     </div>
                   </div>
 
-                  <a 
-                    href={resultPdfUrl}
-                    download={`extracted_${file.name}`}
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      if (resultPdfBlob) {
+                        await saveOrShareFile({
+                          blob: resultPdfBlob,
+                          filename: `extracted_${file.name}`,
+                          mimeType: 'application/pdf',
+                          title: `extracted_${file.name}`,
+                        });
+                      } else if (resultPdfUrl) {
+                        openFilePreview(resultPdfUrl);
+                      }
+                    }}
                     className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-black rounded-xl border-2 border-black flex items-center justify-center gap-2 transition shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                   >
-                    <Download className="w-5 h-5" /> ดาวน์โหลดไฟล์แยก
-                  </a>
+                    <Download className="w-5 h-5" /> ดาวน์โหลด / บันทึกไฟล์
+                  </button>
+
+                  {resultPdfUrl && (
+                    <button 
+                      type="button"
+                      onClick={() => openFilePreview(resultPdfUrl)}
+                      className="w-full py-3 bg-white hover:bg-zinc-50 text-black font-black text-sm rounded-xl border-2 border-black flex items-center justify-center gap-2 transition shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    >
+                      <ExternalLink className="w-4 h-4 text-neutral-700" /> เปิดดูตัวอย่างเอกสาร
+                    </button>
+                  )}
 
                   <button 
                     type="button"

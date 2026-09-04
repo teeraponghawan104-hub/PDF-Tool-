@@ -43,9 +43,15 @@ export async function convertImagesToPdf(
       });
     } catch (err) {
       console.error(`Error processing image ${imgFile.name}:`, err);
-      // Fallback: use raw previewUrl if canvas processing fails (using original image info)
+      // Safe fallback: convert file directly to data URL so jsPDF can always ingest it
+      const fallbackDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(imgFile.previewUrl);
+        reader.readAsDataURL(imgFile.file);
+      });
       processedImages.push({
-        dataUrl: imgFile.previewUrl,
+        dataUrl: fallbackDataUrl,
         width: imgFile.width,
         height: imgFile.height,
         name: imgFile.name,

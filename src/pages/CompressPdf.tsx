@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileText, FileUp, CheckCircle2, Download, Settings2, Info } from 'lucide-react';
+import { FileText, FileUp, CheckCircle2, Download, Settings2, Info, ExternalLink } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import { loadPdfDocument } from '../utils/pdfHelper';
+import { saveOrShareFile, openFilePreview, isIOS } from '../utils/downloadHelper';
 
 import PdfThumbnail from '../components/PdfThumbnail';
 
@@ -145,7 +146,7 @@ export default function CompressPdf() {
             onClick={() => fileInputRef.current?.click()}
             className="border-4 border-dashed border-gray-300 rounded-xl p-16 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors"
           >
-            <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="hidden" />
+            <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="sr-only" />
             <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
               <FileUp className="w-10 h-10" />
             </div>
@@ -301,14 +302,35 @@ export default function CompressPdf() {
                   >
                     ตั้งค่าใหม่
                   </button>
-                  <a
-                    href={resultPdfUrl}
-                    download={`compressed_${file.name}`}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (resultPdfBlob) {
+                        await saveOrShareFile({
+                          blob: resultPdfBlob,
+                          filename: `compressed_${file.name}`,
+                          mimeType: 'application/pdf',
+                          title: `compressed_${file.name}`,
+                        });
+                      } else if (resultPdfUrl) {
+                        openFilePreview(resultPdfUrl);
+                      }
+                    }}
                     className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
                   >
-                    <Download className="w-6 h-6" />
-                    ดาวน์โหลด PDF
-                  </a>
+                    <Download className="w-6 h-6 text-emerald-400" />
+                    ดาวน์โหลด / บันทึก PDF
+                  </button>
+                  {resultPdfUrl && (
+                    <button
+                      type="button"
+                      onClick={() => openFilePreview(resultPdfUrl)}
+                      className="w-full sm:w-auto px-6 py-4 bg-white text-black border-2 border-black rounded-xl font-bold text-base flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                    >
+                      <ExternalLink className="w-5 h-5 text-neutral-700" />
+                      เปิดดูตัวอย่าง
+                    </button>
+                  )}
                 </div>
               </div>
             )}

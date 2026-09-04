@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FileUp, Download, CheckCircle2, AlertTriangle, LayoutGrid, Loader2, Trash2 } from 'lucide-react';
+import { FileUp, Download, CheckCircle2, AlertTriangle, LayoutGrid, Loader2, Trash2, ExternalLink } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 import { loadPdfDocument } from '../utils/pdfHelper';
+import { saveOrShareFile, openFilePreview } from '../utils/downloadHelper';
 
 import {
   DndContext,
@@ -77,6 +78,7 @@ export default function OrganizePdf() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingPages, setIsLoadingPages] = useState(false);
   const [resultPdfUrl, setResultPdfUrl] = useState<string | null>(null);
+  const [resultPdfBlob, setResultPdfBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadProgress, setLoadProgress] = useState(0);
 
@@ -95,9 +97,10 @@ export default function OrganizePdf() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (selected && selected.type === 'application/pdf') {
+    if (selected && (selected.type === 'application/pdf' || selected.name.toLowerCase().endsWith('.pdf'))) {
       setFile(selected);
       setResultPdfUrl(null);
+      setResultPdfBlob(null);
       setError(null);
       await loadPdfPages(selected);
     } else {
@@ -172,6 +175,7 @@ export default function OrganizePdf() {
       const pdfBytes = await newPdf.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
+      setResultPdfBlob(blob);
       setResultPdfUrl(url);
 
     } catch (err: any) {
@@ -182,14 +186,16 @@ export default function OrganizePdf() {
     }
   };
 
-  const handleDownload = () => {
-    if (resultPdfUrl) {
-      const a = document.createElement('a');
-      a.href = resultPdfUrl;
-      a.download = `Organized_${file?.name || 'document.pdf'}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+  const handleDownload = async () => {
+    if (resultPdfBlob) {
+      await saveOrShareFile({
+        blob: resultPdfBlob,
+        filename: `Organized_${file?.name || 'document.pdf'}`,
+        mimeType: 'application/pdf',
+        title: `Organized_${file?.name || 'document.pdf'}`,
+      });
+    } else if (resultPdfUrl) {
+      openFilePreview(resultPdfUrl);
     }
   };
 
@@ -216,8 +222,8 @@ export default function OrganizePdf() {
             <p className="text-gray-500 font-medium">เพื่อเริ่มจัดเรียงหน้า</p>
             <input 
               type="file" 
-              className="hidden" 
-              accept="application/pdf"
+              className="sr-only" 
+              accept=".pdf,application/pdf"
               ref={fileInputRef}
               onChange={handleFileChange}
             />
@@ -252,6 +258,7 @@ export default function OrganizePdf() {
                   setFileBuffer(null);
                   setPages([]);
                   setResultPdfUrl(null);
+                  setResultPdfBlob(null);
                 }}
                 className="text-sm text-red-600 font-bold hover:underline"
                 disabled={isProcessing}
@@ -336,18 +343,31 @@ export default function OrganizePdf() {
                 </div>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-6">
                   <button
-                    onClick={() => setResultPdfUrl(null)}
-                    className="px-6 py-4 bg-white text-black border-2 border-black rounded-xl font-bold hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      setResultPdfUrl(null);
+                      setResultPdfBlob(null);
+                    }}
+                    className="px-6 py-4 bg-white text-black border-2 border-black rounded-xl font-bold hover:bg-gray-50 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px]"
                   >
                     แก้ไขลำดับใหม่
                   </button>
                   <button
                     onClick={handleDownload}
-                    className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                    className="w-full sm:w-auto px-8 py-4 bg-black text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px]"
                   >
-                    <Download className="w-6 h-6" />
-                    ดาวน์โหลด PDF
+                    <Download className="w-6 h-6 text-teal-400" />
+                    ดาวน์โหลด / บันทึก PDF
                   </button>
+                  {resultPdfUrl && (
+                    <button
+                      type="button"
+                      onClick={() => openFilePreview(resultPdfUrl)}
+                      className="w-full sm:w-auto px-6 py-4 bg-white text-black border-2 border-black rounded-xl font-bold text-base flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px]"
+                    >
+                      <ExternalLink className="w-5 h-5 text-neutral-700" />
+                      เปิดดูตัวอย่าง
+                    </button>
+                  )}
                 </div>
               </div>
             )}

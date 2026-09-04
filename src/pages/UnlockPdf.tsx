@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Unlock, FileUp, CheckCircle2, Download, AlertTriangle } from 'lucide-react';
+import { Unlock, FileUp, CheckCircle2, Download, AlertTriangle, ExternalLink } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
+import { saveOrShareFile, openFilePreview } from '../utils/downloadHelper';
 
 export default function UnlockPdf() {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultPdfUrl, setResultPdfUrl] = useState<string | null>(null);
+  const [resultPdfBlob, setResultPdfBlob] = useState<Blob | null>(null);
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +40,7 @@ export default function UnlockPdf() {
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       if (resultPdfUrl) URL.revokeObjectURL(resultPdfUrl);
+      setResultPdfBlob(blob);
       setResultPdfUrl(URL.createObjectURL(blob));
     } catch (e: any) {
       console.error(e);
@@ -59,7 +62,7 @@ export default function UnlockPdf() {
           onClick={() => fileInputRef.current?.click()}
           className="max-w-xl mx-auto border-2 border-dashed rounded-3xl p-12 bg-white flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
         >
-          <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="sr-only" />
           <div className="w-16 h-16 bg-gray-200 text-gray-700 rounded-2xl flex items-center justify-center border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4">
             <FileUp className="w-8 h-8" />
           </div>
@@ -102,14 +105,35 @@ export default function UnlockPdf() {
                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                  <span className="font-bold text-emerald-800">ปลดล็อกสำเร็จแล้ว! (ถอดรหัสผ่านแล้ว)</span>
                </div>
-               <a 
-                 href={resultPdfUrl}
-                 download={`unlocked_${file.name}`}
-                 className="w-full py-4 bg-black hover:bg-neutral-800 text-white font-black rounded-xl border-2 border-black flex items-center justify-center gap-2 transition"
+               <button 
+                 type="button"
+                 onClick={async () => {
+                   if (resultPdfBlob) {
+                     await saveOrShareFile({
+                       blob: resultPdfBlob,
+                       filename: `unlocked_${file.name}`,
+                       mimeType: 'application/pdf',
+                       title: `unlocked_${file.name}`,
+                     });
+                   } else if (resultPdfUrl) {
+                     openFilePreview(resultPdfUrl);
+                   }
+                 }}
+                 className="w-full py-4 bg-black hover:bg-neutral-800 text-white font-black rounded-xl border-2 border-black flex items-center justify-center gap-2 transition shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px]"
                >
-                 <Download className="w-5 h-5" /> ดาวน์โหลด PDF
-               </a>
-               <button onClick={() => { setFile(null); setResultPdfUrl(null); }} className="w-full text-center text-sm font-bold underline text-gray-500">ทำไฟล์อื่น</button>
+                 <Download className="w-5 h-5 text-emerald-400" /> ดาวน์โหลด / บันทึก PDF
+               </button>
+
+               {resultPdfUrl && (
+                 <button 
+                   type="button"
+                   onClick={() => openFilePreview(resultPdfUrl)}
+                   className="w-full py-3 bg-white hover:bg-neutral-50 text-black font-bold text-sm rounded-xl border-2 border-black flex items-center justify-center gap-2 transition shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px]"
+                 >
+                   <ExternalLink className="w-4 h-4 text-neutral-700" /> เปิดดูตัวอย่างเอกสาร
+                 </button>
+               )}
+               <button onClick={() => { setFile(null); setResultPdfUrl(null); setResultPdfBlob(null); }} className="w-full text-center text-sm font-bold underline text-gray-500">ทำไฟล์อื่น</button>
             </div>
           )}
         </div>

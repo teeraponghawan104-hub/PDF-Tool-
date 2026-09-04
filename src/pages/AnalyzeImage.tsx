@@ -14,7 +14,7 @@ export default function AnalyzeImage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (selected && selected.type.startsWith('image/')) {
+    if (selected && (selected.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(selected.name))) {
       setFile(selected);
       setResult(null);
       setError(null);
@@ -23,7 +23,7 @@ export default function AnalyzeImage() {
       const url = URL.createObjectURL(selected);
       setPreviewUrl(url);
     } else {
-      setError('กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (เช่น JPG, PNG)');
+      setError('กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (เช่น JPG, PNG, WebP)');
     }
   };
 
@@ -101,8 +101,8 @@ export default function AnalyzeImage() {
                 <p className="text-gray-500 font-medium">หรือลากไฟล์มาวางที่นี่ (รองรับ JPG, PNG, WebP)</p>
                 <input 
                   type="file" 
-                  className="hidden" 
-                  accept="image/*"
+                  className="sr-only" 
+                  accept="image/*,.png,.jpg,.jpeg,.webp,.heic,.heif"
                   ref={fileInputRef}
                   onChange={handleFileChange}
                 />

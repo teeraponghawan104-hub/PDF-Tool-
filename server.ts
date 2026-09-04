@@ -21,7 +21,7 @@ async function startServer() {
   app.post("/api/analyze-image", upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No image provided" });
+        return res.status(400).json({ error: "กรุณาเลือกไฟล์รูปภาพที่ต้องการวิเคราะห์" });
       }
 
       const prompt = req.body.prompt || "Analyze this image and describe what you see in detail.";
@@ -35,27 +35,59 @@ async function startServer() {
         },
       });
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: req.file.buffer.toString("base64"),
-                mimeType: req.file.mimetype,
-              },
-            },
-            {
-              text: prompt,
-            },
-          ],
+      const imagePart = {
+        inlineData: {
+          data: req.file.buffer.toString("base64"),
+          mimeType: req.file.mimetype || "image/jpeg",
         },
-      });
+      };
 
-      res.json({ result: response.text });
+      // Primary recommended model is gemini-3.8-flash with fallback models if temporary 503 high demand occurs
+      const modelsToTry = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"];
+      let lastError: any = null;
+      let textResult = "";
+
+      for (const model of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: {
+              parts: [imagePart, { text: prompt }],
+            },
+          });
+
+          if (response?.text) {
+            textResult = response.text;
+            break;
+          }
+        } catch (err: any) {
+          console.warn(`Model ${model} encounter error, attempting fallback:`, err?.message || err);
+          lastError = err;
+          // If 503 or transient unavailability, wait briefly before fallback
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        }
+      }
+
+      if (textResult) {
+        return res.json({ result: textResult });
+      }
+
+      const errorMsg = lastError?.message || "";
+      if (errorMsg.includes("503") || errorMsg.includes("high demand") || errorMsg.includes("UNAVAILABLE")) {
+        return res.status(503).json({
+          error: "ขณะนี้ระบบ AI (Gemini) กำลังมีผู้ใช้งานหนาแน่นชั่วคราว กรุณากดลองวิเคราะห์ใหม่อีกครั้งในอีกสักครู่",
+        });
+      }
+      if (errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({
+          error: "เกินขีดจำกัดการเรียกใช้งานชั่วคราว กรุณารอสักครู่แล้วกดลองใหม่อีกครั้ง",
+        });
+      }
+
+      res.status(500).json({ error: lastError?.message || "ไม่สามารถวิเคราะห์รูปภาพได้ในขณะนี้" });
     } catch (error: any) {
       console.error("Gemini API error:", error);
-      res.status(500).json({ error: error.message || "Failed to analyze image" });
+      res.status(500).json({ error: error.message || "เกิดข้อผิดพลาดในการประมวลผลรูปภาพ" });
     }
   });
 

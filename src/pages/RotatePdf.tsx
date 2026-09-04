@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RotateCcw, FileUp, CheckCircle2, Download, AlertTriangle, ArrowRight } from 'lucide-react';
+import { RotateCcw, FileUp, CheckCircle2, Download, AlertTriangle, ArrowRight, ExternalLink } from 'lucide-react';
 import { PDFDocument, degrees } from 'pdf-lib';
 import PdfThumbnail from '../components/PdfThumbnail';
+import { saveOrShareFile, openFilePreview } from '../utils/downloadHelper';
 
 export default function RotatePdf() {
   const [file, setFile] = useState<File | null>(null);
@@ -69,7 +70,7 @@ export default function RotatePdf() {
           onClick={() => fileInputRef.current?.click()}
           className="max-w-xl mx-auto border-2 border-dashed rounded-3xl p-12 bg-white flex flex-col items-center justify-center cursor-pointer hover:bg-purple-50 transition border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
         >
-          <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={handleFile} accept=".pdf,application/pdf" className="sr-only" />
           <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4">
             <FileUp className="w-8 h-8" />
           </div>
@@ -129,13 +130,34 @@ export default function RotatePdf() {
                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                  <span className="font-bold text-emerald-800">หมุนไฟล์สำเร็จแล้ว!</span>
                </div>
-               <a 
-                 href={resultPdfUrl}
-                 download={`rotated_${file.name}`}
-                 className="w-full py-4 bg-black hover:bg-neutral-800 text-white font-black rounded-xl border-2 border-black flex items-center justify-center gap-2 transition"
+               <button 
+                 type="button"
+                 onClick={async () => {
+                   if (resultPdfBlob) {
+                     await saveOrShareFile({
+                       blob: resultPdfBlob,
+                       filename: `rotated_${file.name}`,
+                       mimeType: 'application/pdf',
+                       title: `rotated_${file.name}`,
+                     });
+                   } else if (resultPdfUrl) {
+                     openFilePreview(resultPdfUrl);
+                   }
+                 }}
+                 className="w-full py-4 bg-black hover:bg-neutral-800 text-white font-black rounded-xl border-2 border-black flex items-center justify-center gap-2 transition shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px]"
                >
-                 <Download className="w-5 h-5" /> ดาวน์โหลด PDF
-               </a>
+                 <Download className="w-5 h-5 text-emerald-400" /> ดาวน์โหลด / บันทึก PDF
+               </button>
+
+               {resultPdfUrl && (
+                 <button 
+                   type="button"
+                   onClick={() => openFilePreview(resultPdfUrl)}
+                   className="w-full py-3 bg-white hover:bg-neutral-50 text-black font-bold text-sm rounded-xl border-2 border-black flex items-center justify-center gap-2 transition shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px]"
+                 >
+                   <ExternalLink className="w-4 h-4 text-neutral-700" /> เปิดดูตัวอย่างเอกสาร
+                 </button>
+               )}
                <button onClick={() => { setFile(null); setResultPdfUrl(null); setResultPdfBlob(null); setPreviewUrl(null); }} className="w-full text-center text-sm font-bold underline text-gray-500">แปลงไฟล์อื่น</button>
             </div>
           )}

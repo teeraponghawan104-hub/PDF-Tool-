@@ -44,8 +44,19 @@ export function rotateAndOptimizeImage(
       const isRotatedOrtho = imageFile.rotation === 90 || imageFile.rotation === 270;
 
       // Determine dimensions after rotation
-      const width = isRotatedOrtho ? img.naturalHeight : img.naturalWidth;
-      const height = isRotatedOrtho ? img.naturalWidth : img.naturalHeight;
+      const rawWidth = isRotatedOrtho ? img.naturalHeight : img.naturalWidth;
+      const rawHeight = isRotatedOrtho ? img.naturalWidth : img.naturalHeight;
+
+      // Constrain max canvas dimension to 3840px to prevent iOS Safari canvas buffer/memory crashes
+      // (Safari limits canvas size to 4096px or 16.7 megapixels)
+      const MAX_CANVAS_DIM = 3840;
+      let scale = 1;
+      if (Math.max(rawWidth, rawHeight) > MAX_CANVAS_DIM) {
+        scale = MAX_CANVAS_DIM / Math.max(rawWidth, rawHeight);
+      }
+
+      const width = Math.round(rawWidth * scale);
+      const height = Math.round(rawHeight * scale);
 
       canvas.width = width;
       canvas.height = height;
@@ -53,7 +64,10 @@ export function rotateAndOptimizeImage(
       // Draw and rotate from center
       ctx.translate(width / 2, height / 2);
       ctx.rotate(rotationRad);
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      
+      const drawW = (isRotatedOrtho ? height : width);
+      const drawH = (isRotatedOrtho ? width : height);
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
 
       // Extract as compressed JPEG
       const dataUrl = canvas.toDataURL('image/jpeg', quality);

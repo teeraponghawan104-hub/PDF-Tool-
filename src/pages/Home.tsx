@@ -55,6 +55,7 @@ export default function Home() {
           return (
             <Link 
               key={tool.id} 
+              id={`tool-${tool.id}`}
               to={tool.path}
               className="block group bg-white border-2 border-black rounded-2xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:bg-slate-50 transition-all cursor-pointer"
             >

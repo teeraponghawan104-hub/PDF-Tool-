@@ -4,8 +4,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PDFDocument } from 'pdf-lib';
-import { FileUp, FileText, CheckCircle2, AlertTriangle, X, Download, Plus, Trash2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { FileUp, FileText, CheckCircle2, AlertTriangle, X, Download, Plus, Trash2, ArrowLeft, ArrowRight, ExternalLink } from 'lucide-react';
 import PdfThumbnail from '../components/PdfThumbnail';
+import { saveOrShareFile, openFilePreview, isIOS } from '../utils/downloadHelper';
 import {
   DndContext,
   closestCenter,
@@ -131,6 +132,7 @@ export default function MergePdf() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultPdfUrl, setResultPdfUrl] = useState<string | null>(null);
+  const [resultPdfBlob, setResultPdfBlob] = useState<Blob | null>(null);
   const [resultFileName, setResultFileName] = useState('merged_document.pdf');
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [dragActive, setDragActive] = useState(false);
@@ -269,6 +271,7 @@ export default function MergePdf() {
       const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
       if (resultPdfUrl) URL.revokeObjectURL(resultPdfUrl);
       const url = URL.createObjectURL(blob);
+      setResultPdfBlob(blob);
       setResultPdfUrl(url);
       showToast('รวมไฟล์ PDF ลำเร็จแล้ว', 'success');
     } catch (error) {
@@ -279,14 +282,27 @@ export default function MergePdf() {
     }
   };
 
-  const downloadPdf = () => {
-    if (!resultPdfUrl) return;
-    const link = document.createElement('a');
-    link.href = resultPdfUrl;
-    link.download = resultFileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadPdf = async () => {
+    let blobToDownload = resultPdfBlob;
+    if (!blobToDownload && resultPdfUrl) {
+      try {
+        const resp = await fetch(resultPdfUrl);
+        blobToDownload = await resp.blob();
+      } catch (e) {
+        console.error('Fetch blob failed:', e);
+      }
+    }
+
+    if (blobToDownload) {
+      await saveOrShareFile({
+        blob: blobToDownload,
+        filename: resultFileName || 'merged_document.pdf',
+        mimeType: 'application/pdf',
+        title: resultFileName || 'merged_document.pdf',
+      });
+    } else if (resultPdfUrl) {
+      openFilePreview(resultPdfUrl);
+    }
   };
 
   return (
@@ -325,7 +341,7 @@ export default function MergePdf() {
             dragActive ? 'bg-red-50 ring-4 ring-red-500/20' : 'hover:bg-slate-50'
           }`}
         >
-          <input type="file" ref={fileInputRef} onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="sr-only" />
           <div className="w-20 h-20 bg-red-100 text-red-600 border-2 border-black rounded-3xl flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6">
             <FileUp className="w-10 h-10" />
           </div>
@@ -339,7 +355,7 @@ export default function MergePdf() {
               <button onClick={triggerFileInput} className="px-4 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] bg-white text-black font-bold rounded-xl active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center gap-2">
                 <Plus className="w-4 h-4" /> เพิ่มไฟล์อีก
               </button>
-              <input type="file" ref={fileInputRef} onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="hidden" />
+              <input type="file" onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="sr-only" />
             </div>
 
             <DndContext 
@@ -416,8 +432,18 @@ export default function MergePdf() {
                     className="w-full py-4 px-4 bg-black hover:bg-neutral-800 text-white border-2 border-black font-extrabold rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.35)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5 text-emerald-400" />
-                    ดาวน์โหลด PDF
+                    ดาวน์โหลด / บันทึกไฟล์
                   </button>
+
+                  {resultPdfUrl && (
+                    <button 
+                      onClick={() => openFilePreview(resultPdfUrl)}
+                      className="w-full py-3 px-4 bg-white hover:bg-neutral-50 text-black border-2 border-black font-bold text-sm rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition flex items-center justify-center gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4 text-neutral-700" />
+                      เปิดดูตัวอย่างเอกสาร
+                    </button>
+                  )}
 
                   <button 
                     onClick={() => {
