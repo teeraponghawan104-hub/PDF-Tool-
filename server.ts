@@ -7,7 +7,7 @@ import multer from "multer";
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
+    fileSize: 30 * 1024 * 1024 // 30MB
   }
 });
 
@@ -24,7 +24,8 @@ async function startServer() {
         return res.status(400).json({ error: "กรุณาเลือกไฟล์รูปภาพที่ต้องการวิเคราะห์" });
       }
 
-      const prompt = req.body.prompt || "Analyze this image and describe what you see in detail.";
+      const prompt = req.body.prompt || "กรุณาวิเคราะห์รูปภาพนี้อย่างละเอียดและอธิบายสิ่งที่เห็น";
+      const requestedModel = req.body.model || "gemini-3.8-flash";
       
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
@@ -35,47 +36,81 @@ async function startServer() {
         },
       });
 
+      // Normalize mimeType for image compatibility (especially mobile uploads)
+      let mimeType = req.file.mimetype || "image/jpeg";
+      if (!mimeType.startsWith("image/") || mimeType === "application/octet-stream") {
+        const name = req.file.originalname.toLowerCase();
+        if (name.endsWith(".png")) mimeType = "image/png";
+        else if (name.endsWith(".webp")) mimeType = "image/webp";
+        else if (name.endsWith(".gif")) mimeType = "image/gif";
+        else mimeType = "image/jpeg";
+      }
+
       const imagePart = {
         inlineData: {
           data: req.file.buffer.toString("base64"),
-          mimeType: req.file.mimetype || "image/jpeg",
+          mimeType,
         },
       };
 
-      // Primary recommended model is gemini-3.8-flash with fallback models if temporary 503 high demand occurs
-      const modelsToTry = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"];
+      // Primary recommended model is gemini-3.8-flash, with fallbacks if temporary 503 high demand occurs
+      const modelsToTry = [
+        requestedModel,
+        "gemini-3.8-flash",
+        "gemini-flash-latest",
+        "gemini-3.1-flash-lite",
+        "gemini-2.5-flash"
+      ];
+      const uniqueModels = Array.from(new Set(modelsToTry));
+
       let lastError: any = null;
       let textResult = "";
+      let usedModel = "";
 
-      for (const model of modelsToTry) {
-        try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: {
-              parts: [imagePart, { text: prompt }],
-            },
-          });
+      for (const model of uniqueModels) {
+        // Try each model with up to 2 attempts if 503/temporary spike occurs
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: {
+                parts: [imagePart, { text: prompt }],
+              },
+              config: {
+                systemInstruction: "คุณคือผู้ช่วย AI ผู้เชี่ยวชาญด้านการวิเคราะห์รูปภาพ การอ่านเอกสาร และการสกัดข้อมูล ให้ตอบคำถามและอธิบายรายละเอียดภาพอย่างแม่นยำ เป็นมิตร ชัดเจน จัดรูปแบบด้วย Markdown ให้อ่านง่าย หากคำถามเป็นภาษาไทยให้ตอบเป็นภาษาไทยเสมอ",
+              }
+            });
 
-          if (response?.text) {
-            textResult = response.text;
-            break;
+            if (response?.text) {
+              textResult = response.text;
+              usedModel = model;
+              break;
+            }
+          } catch (err: any) {
+            console.warn(`Model ${model} attempt ${attempt + 1} error:`, err?.message || err);
+            lastError = err;
+            const errMsg = err?.message || "";
+            // If temporary 503 spike, wait briefly before retrying
+            if (errMsg.includes("503") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE")) {
+              await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+            } else {
+              // Non-503 error, move to next model
+              break;
+            }
           }
-        } catch (err: any) {
-          console.warn(`Model ${model} encounter error, attempting fallback:`, err?.message || err);
-          lastError = err;
-          // If 503 or transient unavailability, wait briefly before fallback
-          await new Promise((resolve) => setTimeout(resolve, 600));
         }
+
+        if (textResult) break;
       }
 
       if (textResult) {
-        return res.json({ result: textResult });
+        return res.json({ result: textResult, model: usedModel });
       }
 
       const errorMsg = lastError?.message || "";
       if (errorMsg.includes("503") || errorMsg.includes("high demand") || errorMsg.includes("UNAVAILABLE")) {
         return res.status(503).json({
-          error: "ขณะนี้ระบบ AI (Gemini) กำลังมีผู้ใช้งานหนาแน่นชั่วคราว กรุณากดลองวิเคราะห์ใหม่อีกครั้งในอีกสักครู่",
+          error: "ขณะนี้ระบบ AI (Gemini 3.8) กำลังมีผู้ใช้งานหนาแน่นชั่วคราว กรุณากดปุ่มลองวิเคราะห์ใหม่อีกครั้ง",
         });
       }
       if (errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED")) {

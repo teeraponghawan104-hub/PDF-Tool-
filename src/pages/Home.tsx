@@ -13,7 +13,7 @@ const tools = [
   { id: 'compress', name: 'บีบอัด PDF', desc: 'ลดขนาดไฟล์ PDF ให้เล็กลงแต่ยังคงคุณภาพไว้ดีที่สุด', icon: <FileText className="w-8 h-8 text-white" />, color: 'bg-green-500', path: '/compress' },
   { id: 'sign', name: 'เซ็นเอกสาร', desc: 'เพิ่มลายเซ็นของคุณลงในไฟล์ PDF วาดหรืออัปโหลดลายเซ็นได้ง่ายๆ', icon: <PenTool className="w-8 h-8 text-white" />, color: 'bg-rose-500', path: '/sign' },
   { id: 'page-numbers', name: 'ใส่เลขหน้า', desc: 'เพิ่มหมายเลขหน้าลงในเอกสาร PDF เลือกตำแหน่งได้ตามต้องการ', icon: <Hash className="w-8 h-8 text-white" />, color: 'bg-cyan-500', path: '/page-numbers' },
-  { id: 'analyze', name: 'วิเคราะห์รูปภาพ', desc: 'อัปโหลดรูปภาพและให้ AI ช่วยวิเคราะห์รายละเอียดภายในภาพ', icon: <ScanSearch className="w-8 h-8 text-white" />, color: 'bg-indigo-500', path: '/analyze' },
+  { id: 'analyze', name: 'วิเคราะห์รูปภาพ AI', desc: 'ขับเคลื่อนด้วย Gemini 3.8 Flash วิเคราะห์รูปภาพ สกัดข้อความ และตอบคำถาม', icon: <ScanSearch className="w-8 h-8 text-white" />, color: 'bg-indigo-500', path: '/analyze', badge: 'Gemini 3.8' },
   { id: 'jpg-to-pdf', name: 'JPG เป็น PDF', desc: 'แปลงรูปภาพ JPG เป็น PDF หมุนหรือปรับระยะขอบแบบรวดเร็ว', icon: <ImageIcon className="w-8 h-8 text-white" />, color: 'bg-yellow-500', path: '/jpg-to-pdf' },
   { id: 'pdf-to-jpg', name: 'PDF เป็น JPG', desc: 'แปลงแต่ละหน้าเป็น JPG หรือแยกรูปภาพที่อยู่ใน PDF', icon: <ImageIcon className="w-8 h-8 text-white" />, color: 'bg-yellow-500', path: '/pdf-to-jpg' },
   { id: 'rotate', name: 'หมุน PDF', desc: 'หมุน PDF ตามที่คุณต้องการ รองรับหลายไฟล์พร้อมกัน', icon: <RotateCcw className="w-8 h-8 text-white" />, color: 'bg-purple-500', path: '/rotate' },
@@ -59,8 +59,15 @@ export default function Home() {
               to={tool.path}
               className="block group bg-white border-2 border-black rounded-2xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:bg-slate-50 transition-all cursor-pointer"
             >
-              <div className={`w-14 h-14 ${tool.color} rounded-xl flex items-center justify-center border-2 border-black mb-4 group-hover:scale-110 transition-transform`}>
-                {tool.icon}
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-14 h-14 ${tool.color} rounded-xl flex items-center justify-center border-2 border-black group-hover:scale-110 transition-transform`}>
+                  {tool.icon}
+                </div>
+                {(tool as any).badge && (
+                  <span className="bg-indigo-100 text-indigo-800 text-xs font-black px-2.5 py-1 rounded-full border-2 border-indigo-400 uppercase tracking-wide flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(99,102,241,0.4)]">
+                    ✨ {(tool as any).badge}
+                  </span>
+                )}
               </div>
               <h3 className="text-xl font-bold mb-2 text-black group-hover:text-red-600 transition-colors">{tool.name}</h3>
               <p className="text-sm text-gray-600 font-medium leading-relaxed">{tool.desc}</p>
