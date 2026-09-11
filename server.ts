@@ -25,7 +25,7 @@ async function startServer() {
       }
 
       const prompt = req.body.prompt || "กรุณาวิเคราะห์รูปภาพนี้อย่างละเอียดและอธิบายสิ่งที่เห็น";
-      const requestedModel = req.body.model || "gemini-3.8-flash";
+      const requestedModel = req.body.model || "gemini-3.1-pro-preview";
       
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
@@ -53,13 +53,13 @@ async function startServer() {
         },
       };
 
-      // Primary recommended model is gemini-3.8-flash, with fallbacks if temporary 503 high demand occurs
+      // Primary recommended model is gemini-3.1-pro-preview, with fallbacks if temporary 503 high demand occurs
       const modelsToTry = [
         requestedModel,
-        "gemini-3.8-flash",
+        "gemini-3.1-pro-preview",
         "gemini-flash-latest",
         "gemini-3.1-flash-lite",
-        "gemini-2.5-flash"
+        "gemini-3.8-flash"
       ];
       const uniqueModels = Array.from(new Set(modelsToTry));
 
@@ -90,8 +90,8 @@ async function startServer() {
             console.warn(`Model ${model} attempt ${attempt + 1} error:`, err?.message || err);
             lastError = err;
             const errMsg = err?.message || "";
-            // If temporary 503 spike, wait briefly before retrying
-            if (errMsg.includes("503") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE")) {
+            // If temporary spike, wait briefly before retrying
+            if (errMsg.includes("503") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE") || errMsg.includes("overloaded") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED")) {
               await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
             } else {
               // Non-503 error, move to next model
@@ -108,9 +108,14 @@ async function startServer() {
       }
 
       const errorMsg = lastError?.message || "";
-      if (errorMsg.includes("503") || errorMsg.includes("high demand") || errorMsg.includes("UNAVAILABLE")) {
+      if (errorMsg.includes("404") || errorMsg.includes("400") || errorMsg.includes("not found") || errorMsg.includes("INVALID_ARGUMENT")) {
+        return res.status(400).json({
+          error: "ชื่อโมเดล AI ที่ระบุไม่ถูกต้องหรือไม่มีอยู่จริง กรุณาติดต่อนักพัฒนา",
+        });
+      }
+      if (errorMsg.includes("503") || errorMsg.includes("high demand") || errorMsg.includes("UNAVAILABLE") || errorMsg.includes("overloaded")) {
         return res.status(503).json({
-          error: "ขณะนี้ระบบ AI (Gemini 3.8) กำลังมีผู้ใช้งานหนาแน่นชั่วคราว กรุณากดปุ่มลองวิเคราะห์ใหม่อีกครั้ง",
+          error: "ขณะนี้ระบบ AI กำลังมีผู้ใช้งานหนาแน่นชั่วคราว กรุณากดปุ่มลองวิเคราะห์ใหม่อีกครั้ง",
         });
       }
       if (errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED")) {
@@ -138,7 +143,7 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: { overlay: false } },
       appType: "spa",
     });
     app.use(vite.middlewares);
