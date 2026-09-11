@@ -25,7 +25,7 @@ async function startServer() {
       }
 
       const prompt = req.body.prompt || "กรุณาวิเคราะห์รูปภาพนี้อย่างละเอียดและอธิบายสิ่งที่เห็น";
-      const requestedModel = req.body.model || "gemini-3.1-pro-preview";
+      const requestedModel = req.body.model || "gemini-2.5-pro";
       
       const ai = new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY,
@@ -56,8 +56,9 @@ async function startServer() {
       // Try up to 3 models maximum to prevent proxy timeout (10s)
       const modelsToTry = [
         requestedModel,
-        "gemini-flash-latest",
-        "gemini-3.1-flash-lite"
+        "gemini-2.5-pro",
+        "gemini-2.5-flash",
+        "gemini-flash-latest"
       ];
       const uniqueModels = Array.from(new Set(modelsToTry)).slice(0, 3);
 
@@ -98,23 +99,20 @@ async function startServer() {
       }
 
       const errorMsg = lastError?.message || "";
+      let userFriendlyError = "ไม่สามารถวิเคราะห์รูปภาพได้ในขณะนี้";
+      
       if (errorMsg.includes("404") || errorMsg.includes("400") || errorMsg.includes("not found") || errorMsg.includes("INVALID_ARGUMENT")) {
-        return res.status(400).json({
-          error: "ชื่อโมเดล AI ที่ระบุไม่ถูกต้องหรือไม่มีอยู่จริง กรุณาติดต่อนักพัฒนา",
-        });
-      }
-      if (errorMsg.includes("503") || errorMsg.includes("high demand") || errorMsg.includes("UNAVAILABLE") || errorMsg.includes("overloaded")) {
-        return res.status(503).json({
-          error: "ขณะนี้ระบบ AI กำลังมีผู้ใช้งานหนาแน่นชั่วคราว กรุณากดปุ่มลองวิเคราะห์ใหม่อีกครั้ง",
-        });
-      }
-      if (errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED")) {
-        return res.status(429).json({
-          error: "เกินขีดจำกัดการเรียกใช้งานชั่วคราว กรุณารอสักครู่แล้วกดลองใหม่อีกครั้ง",
-        });
+        userFriendlyError = "ชื่อโมเดล AI ที่ระบุไม่ถูกต้องหรือไม่มีอยู่จริง กรุณาติดต่อนักพัฒนา";
+      } else if (errorMsg.includes("503") || errorMsg.includes("high demand") || errorMsg.includes("UNAVAILABLE") || errorMsg.includes("overloaded")) {
+        userFriendlyError = "ขณะนี้ระบบ AI กำลังมีผู้ใช้งานหนาแน่นชั่วคราว กรุณากดปุ่มลองวิเคราะห์ใหม่อีกครั้ง";
+      } else if (errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED")) {
+        userFriendlyError = "โควต้าการใช้งาน AI ชั่วคราวเต็ม กรุณารอสักครู่แล้วกดลองใหม่อีกครั้ง";
+      } else if (errorMsg) {
+        userFriendlyError = `เซิร์ฟเวอร์ตอบกลับผิดพลาด: ${errorMsg}`;
       }
 
-      res.status(500).json({ error: lastError?.message || "ไม่สามารถวิเคราะห์รูปภาพได้ในขณะนี้" });
+      // Return 400 so the frontend can catch the specific JSON error
+      return res.status(400).json({ error: userFriendlyError });
     } catch (error: any) {
       console.error("Gemini API error:", error);
       res.status(500).json({ error: error.message || "เกิดข้อผิดพลาดในการประมวลผลรูปภาพ" });

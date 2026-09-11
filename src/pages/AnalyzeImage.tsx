@@ -60,7 +60,7 @@ export default function AnalyzeImage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('กรุณาวิเคราะห์รูปภาพนี้อย่างละเอียดและอธิบายสิ่งที่เห็น');
-  const [selectedModel, setSelectedModel] = useState('gemini-3.1-pro-preview');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [usedModel, setUsedModel] = useState<string | null>(null);
@@ -220,26 +220,26 @@ export default function AnalyzeImage() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedModel('gemini-3.1-pro-preview')}
+                    onClick={() => setSelectedModel('gemini-2.5-pro')}
                     className={`px-3 py-2 rounded-xl text-xs font-bold border-2 transition-all text-left ${
-                      selectedModel === 'gemini-3.1-pro-preview'
+                      selectedModel === 'gemini-2.5-pro'
                         ? 'bg-indigo-100 border-indigo-600 text-indigo-900 shadow-[2px_2px_0px_0px_rgba(79,70,229,0.3)]'
                         : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    <span className="block font-black">⚡ Gemini 3.1 Pro</span>
+                    <span className="block font-black">⚡ Gemini 2.5 Pro</span>
                     <span className="text-[10px] text-gray-500">แนะนำ • ฉลาดและแม่นยำสูง</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedModel('gemini-flash-latest')}
+                    onClick={() => setSelectedModel('gemini-2.5-flash')}
                     className={`px-3 py-2 rounded-xl text-xs font-bold border-2 transition-all text-left ${
-                      selectedModel === 'gemini-flash-latest'
+                      selectedModel === 'gemini-2.5-flash'
                         ? 'bg-indigo-100 border-indigo-600 text-indigo-900 shadow-[2px_2px_0px_0px_rgba(79,70,229,0.3)]'
                         : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    <span className="block font-black">🚀 Gemini Flash</span>
+                    <span className="block font-black">🚀 Gemini 2.5 Flash</span>
                     <span className="text-[10px] text-gray-500">รวดเร็วพิเศษ • ตอบสนองไว</span>
                   </button>
                 </div>
@@ -310,12 +310,12 @@ export default function AnalyzeImage() {
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    กำลังประมวลผลด้วย {selectedModel === 'gemini-3.1-pro-preview' ? 'Gemini 3.1 Pro' : 'Gemini Flash'}...
+                    กำลังประมวลผลด้วย {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash'}...
                   </>
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
-                    เริ่มการวิเคราะห์ด้วย {selectedModel === 'gemini-3.1-pro-preview' ? 'Gemini 3.1 Pro' : 'Gemini Flash'}
+                    เริ่มการวิเคราะห์ด้วย {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash'}
                   </>
                 )}
               </button>
