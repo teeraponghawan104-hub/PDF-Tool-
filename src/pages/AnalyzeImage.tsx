@@ -117,7 +117,7 @@ export default function AnalyzeImage() {
           throw new Error('เบราว์เซอร์ของคุณบล็อกการทำงานใน iFrame กรุณาคลิกปุ่ม "เปิดในแท็บใหม่ (Open in new tab)" ที่มุมขวาบนเพื่อใช้งานฟีเจอร์นี้');
         }
 
-        throw new Error(res.status === 413 ? 'ขนาดไฟล์รูปภาพใหญ่เกินไป' : 'เซิร์ฟเวอร์ตอบกลับผิดพลาด กรุณากดลองใหม่อีกครั้ง');
+        throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด: ${res.status} - ${text.substring(0, 150)}`);
       }
 
       if (!res.ok) {

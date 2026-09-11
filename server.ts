@@ -53,51 +53,41 @@ async function startServer() {
         },
       };
 
-      // Primary recommended model is gemini-3.1-pro-preview, with fallbacks if temporary 503 high demand occurs
+      // Try up to 3 models maximum to prevent proxy timeout (10s)
       const modelsToTry = [
         requestedModel,
-        "gemini-3.1-pro-preview",
         "gemini-flash-latest",
-        "gemini-3.1-flash-lite",
-        "gemini-3.8-flash"
+        "gemini-3.1-flash-lite"
       ];
-      const uniqueModels = Array.from(new Set(modelsToTry));
+      const uniqueModels = Array.from(new Set(modelsToTry)).slice(0, 3);
 
       let lastError: any = null;
       let textResult = "";
       let usedModel = "";
 
       for (const model of uniqueModels) {
-        // Try each model with up to 2 attempts if 503/temporary spike occurs
-        for (let attempt = 0; attempt < 2; attempt++) {
-          try {
-            const response = await ai.models.generateContent({
-              model,
-              contents: {
-                parts: [imagePart, { text: prompt }],
-              },
-              config: {
-                systemInstruction: "คุณคือผู้ช่วย AI ผู้เชี่ยวชาญด้านการวิเคราะห์รูปภาพ การอ่านเอกสาร และการสกัดข้อมูล ให้ตอบคำถามและอธิบายรายละเอียดภาพอย่างแม่นยำ เป็นมิตร ชัดเจน จัดรูปแบบด้วย Markdown ให้อ่านง่าย หากคำถามเป็นภาษาไทยให้ตอบเป็นภาษาไทยเสมอ",
-              }
-            });
+        // Try each model with only 1 attempt
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: {
+              parts: [imagePart, { text: prompt }],
+            },
+            config: {
+              systemInstruction: "คุณคือผู้ช่วย AI ผู้เชี่ยวชาญด้านการวิเคราะห์รูปภาพ การอ่านเอกสาร และการสกัดข้อมูล ให้ตอบคำถามและอธิบายรายละเอียดภาพอย่างแม่นยำ เป็นมิตร ชัดเจน จัดรูปแบบด้วย Markdown ให้อ่านง่าย หากคำถามเป็นภาษาไทยให้ตอบเป็นภาษาไทยเสมอ",
+            }
+          });
 
-            if (response?.text) {
-              textResult = response.text;
-              usedModel = model;
-              break;
-            }
-          } catch (err: any) {
-            console.warn(`Model ${model} attempt ${attempt + 1} error:`, err?.message || err);
-            lastError = err;
-            const errMsg = err?.message || "";
-            // If temporary spike, wait briefly before retrying
-            if (errMsg.includes("503") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE") || errMsg.includes("overloaded") || errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED")) {
-              await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
-            } else {
-              // Non-503 error, move to next model
-              break;
-            }
+          if (response?.text) {
+            textResult = response.text;
+            usedModel = model;
+            break;
           }
+        } catch (err: any) {
+          console.warn(`Model ${model} error:`, err?.message || err);
+          lastError = err;
+          // If it's a 404/400 (not a temporary error), we can move to the next model
+          // If it's 503 or 429, we just move to the next model immediately to save time
         }
 
         if (textResult) break;
