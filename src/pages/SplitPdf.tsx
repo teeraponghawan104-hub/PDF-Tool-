@@ -197,13 +197,13 @@ export default function SplitPdf() {
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
           onDrop={(e) => { e.preventDefault(); setDragActive(false); if (e.dataTransfer.files) handleFile({ target: { files: e.dataTransfer.files } } as any); }}
-          className={`max-w-xl mx-auto border-2 border-dashed rounded-3xl p-16 bg-white flex flex-col items-center justify-center cursor-pointer hover:bg-orange-50/50 transition-all border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] block ${dragActive ? 'bg-orange-50 ring-4 ring-orange-500/20' : ''}`}
+          className={`max-w-xl mx-auto border-2 border-dashed rounded-3xl p-16 bg-white flex flex-col items-center justify-center cursor-pointer hover:bg-orange-50/50 transition-all border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] ${dragActive ? 'bg-orange-50 ring-4 ring-orange-500/20' : ''}`}
         >
           <input 
             type="file" 
             onChange={handleFile} 
             accept=".pdf,application/pdf" 
-            className="hidden" 
+            className="sr-only" 
           />
           <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6">
             <FileUp className="w-8 h-8" />

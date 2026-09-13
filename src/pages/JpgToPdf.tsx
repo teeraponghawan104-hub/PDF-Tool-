@@ -32,6 +32,7 @@ import { ImageFile, ConverterConfig, ConversionProgress } from '../types';
 import { getImageDimensions, revokeImageUrls } from '../utils/imageProcessor';
 import { convertImagesToPdf } from '../utils/pdfGenerator';
 import { saveOrShareFile, openFilePreview, isIOS } from '../utils/downloadHelper';
+import heic2any from 'heic2any';
 import {
   DndContext,
   closestCenter,
@@ -502,7 +503,24 @@ export default function JpgToPdf() {
     const processedNewFiles: ImageFile[] = [];
 
     for (let i = 0; i < filesArray.length; i++) {
-      const file = filesArray[i];
+      let file = filesArray[i];
+      
+      if (/\.(heic|heif)$/i.test(file.name)) {
+        try {
+          const converted = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.8
+          });
+          const resultBlob = Array.isArray(converted) ? converted[0] : converted;
+          file = new File([resultBlob], file.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+        } catch (err) {
+          console.error("HEIC conversion failed for:", file.name, err);
+          showToast(`ไม่สามารถแปลงไฟล์ HEIC ได้: ${file.name}`, 'error');
+          continue;
+        }
+      }
+
       try {
         const dimensions = await getImageDimensions(file);
         processedNewFiles.push({
@@ -533,7 +551,9 @@ export default function JpgToPdf() {
 
     setImages(prev => [...prev, ...processedNewFiles]);
     setIsLoadingFiles(false);
-    showToast(`เพิ่มไฟล์รูปภาพใหม่จำนวน ${processedNewFiles.length} รูปเรียบร้อย`, 'success');
+    if (processedNewFiles.length > 0) {
+      showToast(`เพิ่มไฟล์รูปภาพใหม่จำนวน ${processedNewFiles.length} รูปเรียบร้อย`, 'success');
+    }
     
     // Auto reset file input so the same files can be selected again if needed
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -1189,7 +1209,7 @@ export default function JpgToPdf() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-3xl p-12 md:p-16 flex flex-col items-center justify-center text-center cursor-pointer transition duration-300 min-h-[420px] bg-white border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] block ${
+              className={`border-2 border-dashed rounded-3xl p-12 md:p-16 flex flex-col items-center justify-center text-center cursor-pointer transition duration-300 min-h-[420px] bg-white border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${
                 dragActive
                   ? 'bg-blue-50 ring-4 ring-blue-500/20'
                   : 'hover:bg-slate-50/50'
@@ -1201,7 +1221,7 @@ export default function JpgToPdf() {
                   onChange={handleFileInputChange}
                   multiple
                   accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
-                  className="hidden"
+                  className="sr-only"
                 />
 
                 <div className="relative mb-6">
@@ -1303,7 +1323,7 @@ export default function JpgToPdf() {
                         onChange={handleFileInputChange}
                         multiple
                         accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
-                        className="hidden"
+                        className="sr-only"
                       />
                     </label>
                   </div>

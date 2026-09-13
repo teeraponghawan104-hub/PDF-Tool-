@@ -336,11 +336,11 @@ export default function MergePdf() {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-3xl p-12 md:p-16 flex flex-col items-center justify-center text-center cursor-pointer transition min-h-[400px] bg-white border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] block ${
+          className={`border-2 border-dashed rounded-3xl p-12 md:p-16 flex flex-col items-center justify-center text-center cursor-pointer transition min-h-[400px] bg-white border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${
             dragActive ? 'bg-red-50 ring-4 ring-red-500/20' : 'hover:bg-slate-50'
           }`}
         >
-          <input type="file" ref={fileInputRef} onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="sr-only" />
           <div className="w-20 h-20 bg-red-100 text-red-600 border-2 border-black rounded-3xl flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6">
             <FileUp className="w-10 h-10" />
           </div>
@@ -353,7 +353,7 @@ export default function MergePdf() {
             <div className="flex flex-wrap gap-4 items-center justify-between">
               <label className="px-4 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] bg-white text-black font-bold rounded-xl active:translate-x-[1px] active:translate-y-[1px] active:shadow-none flex items-center gap-2 cursor-pointer">
                 <Plus className="w-4 h-4" /> เพิ่มไฟล์อีก
-                <input type="file" onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="hidden" />
+                <input type="file" onChange={e => handleFiles(e.target.files)} multiple accept=".pdf,application/pdf" className="sr-only" />
               </label>
             </div>
 

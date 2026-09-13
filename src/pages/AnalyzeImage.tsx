@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Image as ImageIcon, Sparkles, Loader2, AlertTriangle, Send, Copy, Check, RotateCcw, Cpu } from 'lucide-react';
 import Markdown from 'react-markdown';
+import heic2any from 'heic2any';
 
 async function optimizeImageForUpload(inputFile: File): Promise<File> {
   if (inputFile.size <= 2 * 1024 * 1024) {
@@ -66,18 +67,40 @@ export default function AnalyzeImage() {
   const [usedModel, setUsedModel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected && (selected.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(selected.name))) {
-      setFile(selected);
+      let finalFile = selected;
+      
+      if (/\.(heic|heif)$/i.test(selected.name)) {
+        setIsProcessingFile(true);
+        try {
+          const converted = await heic2any({
+            blob: selected,
+            toType: "image/jpeg",
+            quality: 0.8
+          });
+          const resultBlob = Array.isArray(converted) ? converted[0] : converted;
+          finalFile = new File([resultBlob], selected.name.replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+        } catch (err) {
+          console.error("HEIC conversion failed:", err);
+          setError('ไม่สามารถแปลงไฟล์ HEIC ได้ กรุณาลองใช้ไฟล์นามสกุลอื่น (เช่น JPG, PNG)');
+          setIsProcessingFile(false);
+          return;
+        }
+        setIsProcessingFile(false);
+      }
+
+      setFile(finalFile);
       setResult(null);
       setError(null);
       
       if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const url = URL.createObjectURL(selected);
+      const url = URL.createObjectURL(finalFile);
       setPreviewUrl(url);
-    } else {
+    } else if (selected) {
       setError('กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (เช่น JPG, PNG, WebP)');
     }
   };
@@ -149,7 +172,7 @@ export default function AnalyzeImage() {
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 bg-indigo-50 border-2 border-indigo-200 text-indigo-800 text-xs md:text-sm font-black px-4 py-1.5 rounded-full mb-3 shadow-[2px_2px_0px_0px_rgba(99,102,241,0.25)]">
           <Sparkles className="w-4 h-4 text-indigo-600" />
-          ขับเคลื่อนด้วย {selectedModel === 'gemini-3.1-pro-preview' ? 'Gemini 3.1 Pro' : 'Gemini Flash Latest'}
+          ขับเคลื่อนด้วย {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash'}
         </div>
         <h1 className="text-3xl md:text-4xl font-display font-black tracking-tight mb-2 flex items-center justify-center gap-3">
           วิเคราะห์รูปภาพด้วย AI
@@ -163,16 +186,26 @@ export default function AnalyzeImage() {
           <div className="flex-1 space-y-6">
             {!file ? (
               <label 
-                className="border-4 border-dashed border-gray-300 rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors h-full min-h-[320px] block"
+                className={`border-4 border-dashed border-gray-300 rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors h-full min-h-[320px] ${isProcessingFile ? 'opacity-50 pointer-events-none' : ''}`}
               >
-                <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 border-2 border-indigo-300">
-                  <ImageIcon className="w-10 h-10" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">เลือกรูปภาพ</h3>
-                <p className="text-gray-500 font-medium text-sm">แตะที่นี่หรือลากไฟล์มาวาง (รองรับ JPG, PNG, WebP)</p>
+                {isProcessingFile ? (
+                  <>
+                    <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+                    <h3 className="text-xl font-bold mb-2">กำลังแปลงไฟล์รูปภาพ...</h3>
+                    <p className="text-gray-500 font-medium text-sm">โปรดรอสักครู่ (ไฟล์ HEIC อาจใช้เวลาประมวลผล)</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 border-2 border-indigo-300">
+                      <ImageIcon className="w-10 h-10" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">เลือกรูปภาพ</h3>
+                    <p className="text-gray-500 font-medium text-sm">แตะที่นี่หรือลากไฟล์มาวาง (รองรับ JPG, PNG, WebP, HEIC)</p>
+                  </>
+                )}
                 <input 
                   type="file" 
-                  className="hidden" 
+                  className="sr-only" 
                   accept="image/*,.png,.jpg,.jpeg,.webp,.heic,.heif"
                   onChange={handleFileChange}
                 />
