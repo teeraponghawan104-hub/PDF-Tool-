@@ -1184,13 +1184,12 @@ export default function JpgToPdf() {
 
           {/* If files list is empty: Draw huge beautiful Drag/Drop Courtyard */}
           {images.length === 0 ? (
-            <div
+            <label
               id="file-dropzone"
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              onClick={triggerFileInput}
-              className={`border-2 border-dashed rounded-3xl p-12 md:p-16 flex flex-col items-center justify-center text-center cursor-pointer transition duration-300 min-h-[420px] bg-white border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] ${
+              className={`border-2 border-dashed rounded-3xl p-12 md:p-16 flex flex-col items-center justify-center text-center cursor-pointer transition duration-300 min-h-[420px] bg-white border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] block ${
                 dragActive
                   ? 'bg-blue-50 ring-4 ring-blue-500/20'
                   : 'hover:bg-slate-50/50'
@@ -1202,7 +1201,7 @@ export default function JpgToPdf() {
                   onChange={handleFileInputChange}
                   multiple
                   accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
-                  className="sr-only"
+                  className="hidden"
                 />
 
                 <div className="relative mb-6">
@@ -1228,7 +1227,7 @@ export default function JpgToPdf() {
                   <Plus className="w-4 h-4 stroke-[2.5]" />
                   เลือกไฟล์รูปภาพจากอุปกรณ์ของคุณ
                 </button>
-              </div>
+              </label>
             ) : (
               /* If files are present in queue */
               <div className="bg-white border-2 border-black rounded-3xl p-6 space-y-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-[#1a1a1a]">
@@ -1296,20 +1295,17 @@ export default function JpgToPdf() {
                     </div>
 
                     {/* Add More button */}
-                    <button
-                      onClick={triggerFileInput}
-                      className="px-3 py-1.5 bg-yellow-300 hover:bg-yellow-400 text-black text-xs font-bold rounded-lg flex items-center gap-1 cursor-pointer transition border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                    >
+                    <label className="px-3 py-1.5 bg-yellow-300 hover:bg-yellow-400 text-black text-xs font-bold rounded-lg flex items-center gap-1 cursor-pointer transition border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                       <Plus className="w-3.5 h-3.5" />
                       เพิ่มรูปภาพ
-                    </button>
-                    <input
-                      type="file"
-                      onChange={handleFileInputChange}
-                      multiple
-                      accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
-                      className="sr-only"
-                    />
+                      <input
+                        type="file"
+                        onChange={handleFileInputChange}
+                        multiple
+                        accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                 </div>
 

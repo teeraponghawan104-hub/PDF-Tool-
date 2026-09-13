@@ -67,8 +67,6 @@ export default function AnalyzeImage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected && (selected.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(selected.name))) {
@@ -164,9 +162,8 @@ export default function AnalyzeImage() {
           {/* Left Column: Upload & Preview */}
           <div className="flex-1 space-y-6">
             {!file ? (
-              <div 
-                className="border-4 border-dashed border-gray-300 rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors h-full min-h-[320px]"
-                onClick={() => fileInputRef.current?.click()}
+              <label 
+                className="border-4 border-dashed border-gray-300 rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-colors h-full min-h-[320px] block"
               >
                 <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-6 border-2 border-indigo-300">
                   <ImageIcon className="w-10 h-10" />
@@ -175,18 +172,17 @@ export default function AnalyzeImage() {
                 <p className="text-gray-500 font-medium text-sm">แตะที่นี่หรือลากไฟล์มาวาง (รองรับ JPG, PNG, WebP)</p>
                 <input 
                   type="file" 
-                  className="sr-only" 
+                  className="hidden" 
                   accept="image/*,.png,.jpg,.jpeg,.webp,.heic,.heif"
-                  ref={fileInputRef}
                   onChange={handleFileChange}
                 />
-              </div>
+              </label>
             ) : (
               <div className="space-y-4">
                 <div className="relative border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center min-h-[300px]">
                   {previewUrl && <img src={previewUrl} alt="Preview" className="max-w-full max-h-[400px] object-contain" />}
                   
-                  <div className="absolute top-2 right-2 space-x-2">
+                  <div className="absolute top-2 right-2 space-x-2 z-10">
                     <button 
                       onClick={() => {
                         setFile(null);

@@ -81,6 +81,7 @@ export default function SplitPdf() {
   const [pageRange, setPageRange] = useState('');
   const [maxPages, setMaxPages] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [dragActive, setDragActive] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -192,23 +193,24 @@ export default function SplitPdf() {
       </div>
 
       {!file ? (
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className="max-w-xl mx-auto border-2 border-dashed rounded-3xl p-16 bg-white flex flex-col items-center justify-center cursor-pointer hover:bg-orange-50/50 transition-all border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px]"
+        <label 
+          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+          onDrop={(e) => { e.preventDefault(); setDragActive(false); if (e.dataTransfer.files) handleFile({ target: { files: e.dataTransfer.files } } as any); }}
+          className={`max-w-xl mx-auto border-2 border-dashed rounded-3xl p-16 bg-white flex flex-col items-center justify-center cursor-pointer hover:bg-orange-50/50 transition-all border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] block ${dragActive ? 'bg-orange-50 ring-4 ring-orange-500/20' : ''}`}
         >
           <input 
             type="file" 
-            ref={fileInputRef} 
             onChange={handleFile} 
             accept=".pdf,application/pdf" 
-            className="sr-only" 
+            className="hidden" 
           />
           <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-6">
             <FileUp className="w-8 h-8" />
           </div>
           <h3 className="text-2xl font-black mb-2 text-black">เลือกไฟล์ PDF ที่จะแยกหน้า</h3>
           <p className="text-sm font-semibold text-gray-400">จิ้มที่กล่องนี้เพื่อเปิดคลังไฟล์ของคุณ</p>
-        </div>
+        </label>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
